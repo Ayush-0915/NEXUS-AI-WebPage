@@ -3,7 +3,6 @@
 
 > A JARVIS-style Personal AI Operating System that can see, hear, remember, understand, and act.
 
-![NEXUS AI Banner](assets/banner.png)
 
 ---
 
@@ -258,16 +257,6 @@ NEXUS-AI/
 
 ---
 
-# 📸 Screenshots
-
-### Dashboard
-<img src="assets/dashboard.png" width="100%">
-
-### Vision Mode
-<img src="assets/vision.png" width="100%">
-
-### Memory Engine
-<img src="assets/memory.png" width="100%">
 
 ---
 
