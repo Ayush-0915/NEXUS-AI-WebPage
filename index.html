@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>NEXUS AI — Personal AI Operating System</title>
 <meta name="description" content="NEXUS AI is a JARVIS-style personal AI operating system: voice, memory, vision, screen intelligence, computer control, agents and automation. Local-first and secure." />
+<link rel="icon" type="image/png" href="Nexus AI Logo.png" />
+<link rel="apple-touch-icon" href="Nexus AI Logo.png" />
 <style>
   :root {
     --bg: #04060f; --cyan: #00e5ff; --violet: #8b5cf6; --pink: #ff4ecd;
@@ -675,6 +677,43 @@
 
   @media (max-width: 880px) { #noise-btn { display: none; } .compare-wrap { border-radius: 12px; } }
 
+  /* ===== Status badges ===== */
+  .status-live {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 0.58rem; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px;
+    background: rgba(163,230,53,0.1); border: 1px solid rgba(163,230,53,0.35);
+    color: var(--lime); margin-bottom: 10px; width: fit-content;
+  }
+  .status-live::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--lime); animation: blink 1.4s infinite; flex-shrink: 0; }
+  .status-dev {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 0.58rem; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px;
+    background: rgba(255,126,71,0.1); border: 1px solid rgba(255,126,71,0.35);
+    color: var(--orange); margin-bottom: 10px; width: fit-content;
+  }
+  .status-dev::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--orange); animation: blink 2s infinite; flex-shrink: 0; }
+
+  /* ===== Roadmap section ===== */
+  .roadmap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 36px; }
+  .roadmap-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 22px 24px; position: relative; overflow: hidden;
+    transition: border-color .2s, transform .2s;
+  }
+  .roadmap-card:hover { border-color: rgba(255,126,71,0.4); transform: translateY(-3px); }
+  .roadmap-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--orange), var(--violet));
+  }
+  .roadmap-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; margin-top: 10px; }
+  .roadmap-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.55; }
+  .roadmap-card .r-icon { font-size: 1.6rem; }
+  .roadmap-eta { font-family: var(--mono); font-size: 0.62rem; color: var(--orange); margin-top: 12px; letter-spacing: .08em; }
+
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -702,7 +741,7 @@
   <span class="status-chip"><i></i> SYSTEMS ONLINE</span>
   <div class="nav-links" id="navlinks">
     <a href="#about">About</a><a href="#live">Demo</a><a href="#features">Features</a>
-    <a href="#deep">Deep Intel</a><a href="#compare">Compare</a><a href="#faq">FAQ</a>
+    <a href="#deep">Deep Intel</a><a href="#compare">Compare</a><a href="#roadmap">Roadmap</a><a href="#faq">FAQ</a>
   </div>
 </nav>
 
@@ -728,10 +767,10 @@
       </div>
     </div>
     <div class="hud-wrap">
-      <span class="chip chip-1">🧠 <b>memory</b> indexed</span>
-      <span class="chip chip-2">👁️ <b>vision</b> online</span>
-      <span class="chip chip-3">🎙️ <b>voice</b> streaming</span>
-      <span class="chip chip-4">🤖 <b>agent</b> ready</span>
+      <span class="chip chip-1">👁️ <b>vision</b> online</span>
+      <span class="chip chip-2">📊 <b>telemetry</b> live</span>
+      <span class="chip chip-3">📁 <b>project intel</b> active</span>
+      <span class="chip chip-4">🧠 <b>memory</b> coming soon</span>
       <div class="hud">
         <div class="br"></div>
         <div class="hud-scan"></div>
@@ -768,12 +807,12 @@
       workflows. Always available. Always aware. Always yours.
     </p>
     <div class="about-grid">
-      <div class="about-card reveal"><h3>🗣️ it talks</h3><p>Natural, real-time voice conversations with a friendly, confident voice. Interrupt it mid-sentence — it handles it like a human would, online or offline.</p></div>
-      <div class="about-card reveal"><h3>🧠 it remembers</h3><p>Long-term semantic memory stores your preferences, past conversations, and decisions — so context carries across days, weeks, and projects.</p></div>
-      <div class="about-card reveal"><h3>👁️ it sees</h3><p>Understands your screen, screenshots, images, UI layouts, and documents using vision models and OCR. Ask "what am I looking at?" — it knows.</p></div>
-      <div class="about-card reveal"><h3>⚡ it acts</h3><p>Opens apps, controls your computer, automates repetitive tasks, and chains workflows — with safety checks on every execution.</p></div>
-      <div class="about-card reveal"><h3>🤖 it thinks ahead</h3><p>A planner-executor agent breaks complex goals into subtasks, executes them sequentially, tracks progress, and recovers from failures on its own.</p></div>
-      <div class="about-card reveal"><h3>🔒 it respects you</h3><p>Local-first whenever possible and security-focused by design. Your data, your machine, your control.</p></div>
+      <div class="about-card reveal"><h3>👁️ it sees <span style="font-size:0.6rem;color:var(--lime);font-family:var(--mono);vertical-align:middle;">● LIVE</span></h3><p>Continuously captures your screen every 2 seconds, reads text via OCR, detects VS Code context, and understands what you're working on — without being asked.</p></div>
+      <div class="about-card reveal"><h3>📁 it knows your code <span style="font-size:0.6rem;color:var(--lime);font-family:var(--mono);vertical-align:middle;">● LIVE</span></h3><p>Scans entire project folders, detects tech stacks, maps architecture, generates READMEs, answers questions about your codebase, and can analyze itself.</p></div>
+      <div class="about-card reveal"><h3>📊 it monitors everything <span style="font-size:0.6rem;color:var(--lime);font-family:var(--mono);vertical-align:middle;">● LIVE</span></h3><p>Live CPU, RAM, GPU, battery and network telemetry. Hardware diagnostics, performance insights, and upgrade recommendations — all in the dashboard.</p></div>
+      <div class="about-card reveal"><h3>🗣️ it talks <span style="font-size:0.6rem;color:var(--orange);font-family:var(--mono);vertical-align:middle;">◈ BUILDING</span></h3><p>Natural real-time voice conversations — interrupt it mid-sentence, it handles it. Hybrid online/offline STT + TTS pipeline actively in development.</p></div>
+      <div class="about-card reveal"><h3>🧠 it remembers <span style="font-size:0.6rem;color:var(--orange);font-family:var(--mono);vertical-align:middle;">◈ BUILDING</span></h3><p>Long-term semantic memory using SQLite + FAISS + Sentence Transformers. Stores preferences, decisions, and past context — in development now.</p></div>
+      <div class="about-card reveal"><h3>⚡ it acts <span style="font-size:0.6rem;color:var(--orange);font-family:var(--mono);vertical-align:middle;">◈ BUILDING</span></h3><p>File system agent, computer control, and workflow automation — with safety checks on every action. The full planner-executor agent is next on the roadmap.</p></div>
     </div>
   </div>
 </section>
@@ -787,10 +826,10 @@
     <h2 class="reveal">from "hey nexus" to done. in seconds. ⏱️</h2>
     <p class="desc reveal">a simple loop under the hood: listen → understand → plan → execute.</p>
     <div class="steps">
-      <div class="step reveal"><span class="arrow">→</span><h3>you speak (or type)</h3><p>Talk naturally. NEXUS streams your voice through its hybrid STT pipeline in real time — no wake-word friction.</p></div>
-      <div class="step reveal"><span class="arrow">→</span><h3>it understands context</h3><p>Pulls your memory, screen content, system state, and project context together to know exactly what you mean.</p></div>
-      <div class="step reveal"><span class="arrow">→</span><h3>it routes & plans</h3><p>Picks the best AI model for the task and the planner agent breaks the goal into executable steps.</p></div>
-      <div class="step reveal"><h3>it executes & reports</h3><p>Runs the workflow, tracks progress, recovers from failures, and answers back in a natural voice.</p></div>
+      <div class="step reveal"><span class="arrow">→</span><h3>you type (or speak soon 🎙️)</h3><p>Chat naturally via the dashboard. Voice input is in development — the pipeline is being built to stream STT in real time with no friction.</p></div>
+      <div class="step reveal"><span class="arrow">→</span><h3>it understands context</h3><p>Pulls your screen content, system state, and project context together. Gemini AI + the RAG knowledge base combine to know exactly what you mean.</p></div>
+      <div class="step reveal"><span class="arrow">→</span><h3>it routes & responds</h3><p>Multi-model routing picks the best AI for the task. The planner-executor agent (in development) will break goals into subtasks and execute autonomously.</p></div>
+      <div class="step reveal"><h3>it reports back</h3><p>Answers stream directly in the dashboard. Vision mode keeps watching, system telemetry stays live, and context persists across the session.</p></div>
     </div>
   </div>
 </section>
@@ -895,27 +934,103 @@
 <section id="features" style="background: rgba(255,255,255,0.015);">
   <div class="container">
     <p class="label reveal">// core stack — 13 subsystems</p>
-    <h2 class="reveal">every capability. zero compromises. ⚡</h2>
-    <p class="desc reveal">the full feature matrix — conversation to computer control.</p>
+    <h2 class="reveal">what's built. what's shipping. ⚡</h2>
+    <p class="desc reveal">the full module matrix — green means live on Ayush's machine right now. orange means actively in development.</p>
     <div class="grid">
-      <div class="card reveal"><span class="num">01</span><span class="icon">💬</span><h3>Conversational AI</h3>
-        <ul><li>context-aware, multi-turn memory</li><li>natural language understanding</li><li>intelligent follow-up reasoning</li><li>personalized interactions</li></ul></div>
-      <div class="card reveal"><span class="num">02</span><span class="icon">🎙️</span><h3>Voice Assistant</h3>
-        <ul><li>real-time STT + TTS conversations</li><li>interruptible streaming responses</li><li>hybrid online/offline pipeline</li><li>natural female voice + stable reconnection</li></ul></div>
-      <div class="card reveal"><span class="num">03</span><span class="icon">🧠</span><h3>Long-Term Memory</h3>
-        <ul><li>stores key conversations + prefs</li><li>semantic retrieval</li><li>context persistence</li><li>memory-aware responses</li></ul></div>
-      <div class="card reveal"><span class="num">04</span><span class="icon">👁️</span><h3>Vision Intelligence</h3>
-        <ul><li>image + screenshot analysis</li><li>UI layout reading</li><li>visual reasoning + object understanding</li><li>OCR built in</li></ul></div>
-      <div class="card reveal"><span class="num">05</span><span class="icon">🖥️</span><h3>Screen Intelligence</h3>
-        <ul><li>desktop analysis + app understanding</li><li>explains on-screen content</li><li>reads interface elements</li><li>detects actionable info</li></ul></div>
-      <div class="card reveal"><span class="num">06</span><span class="icon">⚡</span><h3>Computer Control <span class="new-tag">hot</span></h3>
-        <ul><li>opens apps + executes actions</li><li>automates repetitive tasks</li><li>system-aware execution with safety</li></ul></div>
-      <div class="card reveal"><span class="num">07</span><span class="icon">🤖</span><h3>Planner & Executor Agent</h3>
-        <ul><li>breaks goals into subtasks</li><li>sequential workflow execution</li><li>progress tracking</li><li>failure recovery</li></ul></div>
-      <div class="card reveal"><span class="num">12</span><span class="icon">🔁</span><h3>Automation</h3>
-        <ul><li>workflow execution + task chaining</li><li>action triggers</li><li>intelligent orchestration</li></ul></div>
-      <div class="card reveal"><span class="num">13</span><span class="icon">🔬</span><h3>Research Assistant <span class="new-tag">new</span></h3>
-        <ul><li>info gathering + source comparison</li><li>finding summaries</li><li>technical investigations</li></ul></div>
+
+      <!-- LIVE MODULES -->
+      <div class="card reveal">
+        <span class="num">01</span><span class="icon">💬</span>
+        <div class="status-live">Live Now</div>
+        <h3>Conversational AI</h3>
+        <ul><li>Gemini API integration with streaming responses</li><li>context-aware multi-turn conversation</li><li>service abstraction layer + error handling</li><li>conversation management across sessions</li></ul>
+      </div>
+
+      <div class="card reveal">
+        <span class="num">03</span><span class="icon">🧠</span>
+        <div class="status-live">Live Now</div>
+        <h3>Knowledge Base (RAG)</h3>
+        <ul><li>persistent file-based knowledge store</li><li>stores + retrieves context across sessions</li><li>local JSON vector store with context injection</li><li>knowledge ingestion pipeline</li></ul>
+      </div>
+
+      <div class="card reveal">
+        <span class="num">04</span><span class="icon">👁️</span>
+        <div class="status-live">Live Now</div>
+        <h3>Vision Intelligence</h3>
+        <ul><li>continuous screen capture every 2 seconds</li><li>Windows native OCR via Windows.Media.Ocr</li><li>smart region-based change detection</li><li>vision watchdog with auto-recovery</li></ul>
+      </div>
+
+      <div class="card reveal">
+        <span class="num">05</span><span class="icon">🖥️</span>
+        <div class="status-live">Live Now</div>
+        <h3>Screen Intelligence</h3>
+        <ul><li>VS Code detection — file + language + project aware</li><li>developer context extraction while coding</li><li>live dashboard preview in sidebar</li><li>on-screen content understanding</li></ul>
+      </div>
+
+      <div class="card reveal">
+        <span class="num">08</span><span class="icon">📁</span>
+        <div class="status-live">Live Now</div>
+        <h3>Project Intelligence</h3>
+        <ul><li>full codebase scanning + tech stack detection</li><li>architecture analysis + dependency mapping</li><li>README auto-generation</li><li>project Q&A, comparison + self-analysis mode</li></ul>
+      </div>
+
+      <div class="card reveal">
+        <span class="num">09</span><span class="icon">🩺</span>
+        <div class="status-live">Live Now</div>
+        <h3>System Intelligence</h3>
+        <ul><li>CPU, RAM, GPU, battery + network monitoring</li><li>live telemetry via psutil, WMI, nvidia-smi</li><li>hardware diagnostics + performance summaries</li><li>upgrade recommendations + health reports</li></ul>
+      </div>
+
+      <div class="card reveal">
+        <span class="num">11</span><span class="icon">🔀</span>
+        <div class="status-live">Live Now</div>
+        <h3>Multi-Model Routing</h3>
+        <ul><li>Gemini as primary intelligence backend</li><li>OpenAI, Claude + OpenRouter ready</li><li>graceful fallback if a provider is down</li><li>service abstraction layer for easy swapping</li></ul>
+      </div>
+
+      <!-- IN DEVELOPMENT MODULES -->
+      <div class="card reveal">
+        <span class="num">02</span><span class="icon">🎙️</span>
+        <div class="status-dev">In Development</div>
+        <h3>Voice Assistant</h3>
+        <ul><li>real-time STT + TTS pipeline</li><li>interruptible streaming responses</li><li>hybrid online/offline switching</li><li>stable reconnection + natural voice output</li></ul>
+      </div>
+
+      <div class="card reveal">
+        <span class="num">06</span><span class="icon">🧠</span>
+        <div class="status-dev">In Development</div>
+        <h3>Long-Term Memory Engine</h3>
+        <ul><li>SQLite + FAISS + Sentence Transformers stack</li><li>episodic, semantic + preference memory</li><li>cross-session context persistence</li><li>memory-aware responses</li></ul>
+      </div>
+
+      <div class="card reveal">
+        <span class="num">07</span><span class="icon">📂</span>
+        <div class="status-dev">In Development</div>
+        <h3>File System Agent</h3>
+        <ul><li>create, read, move + delete files safely</li><li>workspace registry for project awareness</li><li>safety layer — confirms before destructive actions</li><li>autonomous project generator</li></ul>
+      </div>
+
+      <div class="card reveal">
+        <span class="num">10</span><span class="icon">📄</span>
+        <div class="status-dev">In Development</div>
+        <h3>Document Intelligence</h3>
+        <ul><li>reads + summarizes documents</li><li>extracts key info + answers questions</li><li>organizes knowledge into memory</li></ul>
+      </div>
+
+      <div class="card reveal">
+        <span class="num">12</span><span class="icon">⚡</span>
+        <div class="status-dev">In Development</div>
+        <h3>Computer Control + Automation</h3>
+        <ul><li>opens apps + executes desktop actions</li><li>workflow chaining + task automation</li><li>system-aware safety checks on every action</li><li>planner-executor agent backbone</li></ul>
+      </div>
+
+      <div class="card reveal">
+        <span class="num">13</span><span class="icon">🔬</span>
+        <div class="status-dev">In Development</div>
+        <h3>Research Assistant</h3>
+        <ul><li>local model support via Ollama</li><li>DeepSeek, Qwen, Llama integration</li><li>info gathering + source comparison</li><li>offline-first research — no cloud needed</li></ul>
+      </div>
+
     </div>
   </div>
 </section>
@@ -954,18 +1069,22 @@
   <div class="container">
     <p class="label reveal">// features 09–10</p>
     <h2 class="reveal">knows your machine's whole vibe. 📊</h2>
-    <p class="desc reveal">live hardware telemetry + document intelligence, always on.</p>
+    <p class="desc reveal">live hardware telemetry is fully operational. document intelligence is next in line.</p>
     <div class="stats" style="margin-bottom:24px;">
-      <div class="stat reveal"><div class="v" data-count="100" data-suffix="%">0</div><div class="l">CPU / RAM / Disk monitored</div></div>
-      <div class="stat reveal"><div class="v" data-count="24" data-suffix="/7">0</div><div class="l">health reports & diagnostics</div></div>
-      <div class="stat reveal"><div class="v" data-count="13" data-suffix="">0</div><div class="l">intelligence subsystems</div></div>
-      <div class="stat reveal"><div class="v" data-count="0" data-suffix="ms friction">0</div><div class="l">UX goal. period.</div></div>
+      <div class="stat reveal"><div class="v" data-count="5" data-suffix=" sensors">0</div><div class="l">CPU · RAM · GPU · battery · network</div></div>
+      <div class="stat reveal"><div class="v" data-count="7" data-suffix=" live">0</div><div class="l">modules shipped and running</div></div>
+      <div class="stat reveal"><div class="v" data-count="13" data-suffix="">0</div><div class="l">total intelligence subsystems</div></div>
+      <div class="stat reveal"><div class="v" data-count="6" data-suffix=" building">0</div><div class="l">modules in active development</div></div>
     </div>
     <div class="grid">
-      <div class="card reveal"><span class="num">09</span><span class="icon">🩺</span><h3>System Intelligence</h3>
-        <ul><li>CPU/RAM/disk + hardware diagnostics</li><li>running app detection + storage analysis</li><li>performance insights + hardware recs</li></ul></div>
-      <div class="card reveal"><span class="num">10</span><span class="icon">📄</span><h3>Document Intelligence</h3>
-        <ul><li>reads + summarizes documents</li><li>extracts info, answers questions</li><li>organizes knowledge</li></ul></div>
+      <div class="card reveal"><span class="num">09</span><span class="icon">🩺</span>
+        <div class="status-live">Live Now</div>
+        <h3>System Intelligence</h3>
+        <ul><li>CPU, RAM, GPU + battery live telemetry</li><li>network monitoring + running app detection</li><li>performance summaries + hardware diagnostics</li><li>upgrade recommendations via psutil, WMI, nvidia-smi</li></ul></div>
+      <div class="card reveal"><span class="num">10</span><span class="icon">📄</span>
+        <div class="status-dev">In Development</div>
+        <h3>Document Intelligence</h3>
+        <ul><li>reads + summarizes PDFs and documents</li><li>extracts key info + answers questions</li><li>feeds knowledge into the memory engine</li></ul></div>
     </div>
   </div>
 </section>
@@ -977,8 +1096,12 @@
     <h2 class="reveal">one brain. many minds. 🔀</h2>
     <p class="desc reveal" style="margin:0 auto 0;">auto-picks the best model per task with graceful fallback. no single point of failure.</p>
     <div class="models reveal" style="justify-content:center;">
-      <span class="model">◈ Gemini</span><span class="model">◈ Claude</span>
-      <span class="model">◈ OpenAI</span><span class="model">◈ OpenRouter</span>
+      <span class="model" style="border-color:rgba(163,230,53,0.4);color:var(--lime);">◈ Gemini <span style="font-size:0.6rem;opacity:0.7;">live</span></span>
+      <span class="model">◈ Claude <span style="font-size:0.6rem;opacity:0.7;">ready</span></span>
+      <span class="model">◈ OpenAI <span style="font-size:0.6rem;opacity:0.7;">ready</span></span>
+      <span class="model">◈ OpenRouter <span style="font-size:0.6rem;opacity:0.7;">ready</span></span>
+      <span class="model" style="border-color:rgba(255,126,71,0.4);color:var(--orange);">◈ Ollama <span style="font-size:0.6rem;opacity:0.7;">coming</span></span>
+      <span class="model" style="border-color:rgba(255,126,71,0.4);color:var(--orange);">◈ DeepSeek <span style="font-size:0.6rem;opacity:0.7;">coming</span></span>
     </div>
   </div>
 </section>
@@ -1093,22 +1216,71 @@
     <p class="desc reveal" style="margin: 0 auto 44px; text-align:center;">know exactly what you're booting before you boot it.</p>
     <div class="faq">
       <div class="faq-item reveal"><button class="faq-q">is NEXUS just another chatbot? <span class="tg">+</span></button>
-        <div class="faq-a"><p>nope. chatbots only talk. NEXUS is a full AI operating system — it sees your screen, remembers your context long-term, controls your computer, scans your projects, monitors your hardware, and runs autonomous agents that actually complete tasks.</p></div></div>
-      <div class="faq-item reveal"><button class="faq-q">does it work offline? <span class="tg">+</span></button>
-        <div class="faq-a"><p>the voice pipeline is hybrid — it works online and offline with automatic switching. memory, project intelligence, and system monitoring are local-first by design, so core capabilities don't depend on the cloud.</p></div></div>
-      <div class="faq-item reveal"><button class="faq-q">can it really control my computer? is that safe? <span class="tg">+</span></button>
-        <div class="faq-a"><p>yes, and yes. NEXUS can open apps, execute desktop actions, and automate workflows — but every execution passes through system-aware safety checks, and it asks before doing anything risky or destructive. you're always in control.</p></div></div>
-      <div class="faq-item reveal"><button class="faq-q">what does it remember about me? <span class="tg">+</span></button>
-        <div class="faq-a"><p>important conversations, your preferences, and decisions you've made — stored with semantic retrieval so it can recall them naturally later. memory lives locally whenever possible, and it makes every response context-aware.</p></div></div>
+        <div class="faq-a"><p>nope. what's live right now already goes far beyond a chatbot — NEXUS sees your screen continuously, scans entire codebases, monitors your hardware in real time, and maintains a knowledge base across sessions. voice, memory engine, and computer control are actively in development. it's an AI OS being built in public.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">what's actually working right now? <span class="tg">+</span></button>
+        <div class="faq-a"><p>7 modules are live: Gemini AI core with streaming chat, persistent RAG knowledge base, Vision Mode (screen capture + OCR + VS Code context detection), Screen Intelligence, Project Intelligence Engine (full codebase analysis), System Monitoring (CPU/RAM/GPU/battery/network), and Multi-Model Routing. the cyberpunk dashboard UI is fully functional too.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">what's in development right now? <span class="tg">+</span></button>
+        <div class="faq-a"><p>6 modules are actively being built: Voice Assistant (STT/TTS pipeline), Long-Term Memory Engine (SQLite + FAISS + Sentence Transformers), File System Agent, Document Intelligence, Computer Control + Automation, and Research Assistant with local model support via Ollama. the goal is a fully offline-capable AI OS.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">will it work offline / locally? <span class="tg">+</span></button>
+        <div class="faq-a"><p>that's the direction. vision mode, project intelligence, and system monitoring already run 100% locally. the memory engine and voice pipeline being built are designed local-first. local LLM support via Ollama (DeepSeek, Qwen, Llama) is on the roadmap to remove cloud dependency entirely.</p></div></div>
       <div class="faq-item reveal"><button class="faq-q">which AI models does it use? <span class="tg">+</span></button>
-        <div class="faq-a"><p>NEXUS routes intelligently across Gemini, Claude, OpenAI, and OpenRouter-backed models — automatically choosing the best one per task with graceful fallback if a provider is down. one brain, many minds.</p></div></div>
-      <div class="faq-item reveal"><button class="faq-q">what can it do with my code projects? <span class="tg">+</span></button>
-        <div class="faq-a"><p>scan any local project for folder trees, dependency and import graphs, entry points, tech stack, architecture summaries, file stats, language distribution, code smells, and risks. it can generate READMEs, answer questions about your code, compare projects — and even analyze itself.</p></div></div>
-      <div class="faq-item reveal"><button class="faq-q">can I interrupt it while it's speaking? <span class="tg">+</span></button>
-        <div class="faq-a"><p>absolutely. responses stream in real time and are fully interruptible — cut it off mid-sentence and it adapts naturally, just like talking to a person. if the connection drops, it reconnects and picks up where you left off.</p></div></div>
+        <div class="faq-a"><p>Gemini is the primary intelligence backend right now — with multi-model routing already architected for Claude, OpenAI, and OpenRouter. local models via Ollama are coming next. one abstraction layer, many minds behind it.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">what can it do with my code projects right now? <span class="tg">+</span></button>
+        <div class="faq-a"><p>scan any local project for folder trees, dependency and import graphs, entry points, tech stack, architecture summaries, file stats, language distribution, code smells, and risks. generates READMEs, answers questions about your code, compares projects — and can even analyze itself. this module is fully live.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">can it control my computer? <span class="tg">+</span></button>
+        <div class="faq-a"><p>this is in active development. the File System Agent and Computer Control module are being built with a mandatory safety layer — NEXUS will confirm before any destructive action. you're always in control. expect this in an upcoming release.</p></div></div>
     </div>
   </div>
 </section>
+
+<!-- ===== ROADMAP ===== -->
+<section id="roadmap" style="background: rgba(255,255,255,0.015);">
+  <div class="container">
+    <p class="label reveal">// what's next</p>
+    <h2 class="reveal">the build continues. 🛠️</h2>
+    <p class="desc reveal">these modules are actively being engineered right now. no vaporware — real commits, real progress.</p>
+    <div class="roadmap-grid">
+      <div class="roadmap-card reveal">
+        <div class="r-icon">🎙️</div>
+        <h4>Voice Assistant</h4>
+        <p>Real-time STT + TTS pipeline. Interruptible streaming, hybrid online/offline switching, stable reconnection. You'll be able to literally talk to NEXUS.</p>
+        <div class="roadmap-eta">◈ IN ACTIVE DEVELOPMENT</div>
+      </div>
+      <div class="roadmap-card reveal">
+        <div class="r-icon">🧠</div>
+        <h4>Memory Engine V1</h4>
+        <p>SQLite + FAISS + Sentence Transformers. Episodic, semantic, and preference memory — so NEXUS remembers your decisions, coding context, and preferences across days.</p>
+        <div class="roadmap-eta">◈ IN ACTIVE DEVELOPMENT</div>
+      </div>
+      <div class="roadmap-card reveal">
+        <div class="r-icon">📂</div>
+        <h4>File System Agent</h4>
+        <p>Create, read, move, and delete files safely. Workspace Registry so NEXUS knows all your projects. Safety layer confirms before anything destructive.</p>
+        <div class="roadmap-eta">◈ PLANNED NEXT</div>
+      </div>
+      <div class="roadmap-card reveal">
+        <div class="r-icon">⚡</div>
+        <h4>Computer Control + Automation</h4>
+        <p>Open apps, chain workflows, automate repetitive tasks. Full planner-executor agent that breaks goals into subtasks and executes them — with you always in control.</p>
+        <div class="roadmap-eta">◈ PLANNED NEXT</div>
+      </div>
+      <div class="roadmap-card reveal">
+        <div class="r-icon">🦙</div>
+        <h4>Local AI (Ollama)</h4>
+        <p>DeepSeek, Qwen, Llama running 100% on your machine. Zero cloud dependency. Full intelligence, fully offline. This is the end game.</p>
+        <div class="roadmap-eta">◈ PLANNED</div>
+      </div>
+      <div class="roadmap-card reveal">
+        <div class="r-icon">🏗️</div>
+        <h4>Autonomous Project Generator</h4>
+        <p>Say "create a Streamlit dashboard" — NEXUS builds the folder structure, writes the code, generates the README, and sets up the environment. Automatically.</p>
+        <div class="roadmap-eta">◈ PLANNED</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
 
 <!-- QUOTE 3 -->
 <div class="quote-block">
@@ -1139,10 +1311,10 @@
 
 <footer>
   <div class="f-links">
-    <a href="#about">about</a><a href="#features">features</a><a href="#compare">compare</a><a href="#faq">faq</a><a href="#get-started">launch</a>
+    <a href="#about">about</a><a href="#features">features</a><a href="#roadmap">roadmap</a><a href="#compare">compare</a><a href="#faq">faq</a><a href="#get-started">launch</a>
   </div>
   NEXUS_AI ⬡ NOT A CHATBOT. AN OPERATING SYSTEM. · built different. no cap.<br/>
-  <span style="font-size:0.7rem; opacity:.5; margin-top:8px; display:block;">© 2025 NEXUS AI · local-first · privacy-native · zero fluff</span>
+  <span style="font-size:0.7rem; opacity:.5; margin-top:8px; display:block;">© 2026 NEXUS AI · local-first · privacy-native · zero fluff</span>
 </footer>
 
 <a href="#" id="totop">⬡↑</a>
@@ -1300,12 +1472,12 @@ function jitterMeter(fillId, valId, base) {
 jitterMeter("f1", "mv1", 72); jitterMeter("f2", "mv2", 58); jitterMeter("f3", "mv3", 84);
 
 const bootLines = [
-  '<span class="tag">[init]</span> loading LLM router… <span class="ok">ok</span>',
-  '<span class="tag">[mem]</span> 12,402 embeddings indexed <span class="ok">✓</span>',
-  '<span class="tag">[vision]</span> OCR + screen parser online <span class="ok">✓</span>',
-  '<span class="tag">[voice]</span> STT/TTS hybrid pipeline ready <span class="ok">✓</span>',
-  '<span class="tag">[agent]</span> planner-executor standing by <span class="ok">✓</span>',
-  '<span class="tag">[sys]</span> telemetry stream active… <span class="ok">⬡</span>',
+  '<span class="tag">[init]</span> loading Gemini AI core… <span class="ok">ok</span>',
+  '<span class="tag">[rag]</span> knowledge base loaded — context ready <span class="ok">✓</span>',
+  '<span class="tag">[vision]</span> screen capture + OCR online <span class="ok">✓</span>',
+  '<span class="tag">[project]</span> project intelligence engine ready <span class="ok">✓</span>',
+  '<span class="tag">[sys]</span> cpu · ram · gpu · battery · network live <span class="ok">✓</span>',
+  '<span class="tag">[ui]</span> cyberpunk dashboard active… <span class="ok">⬡</span>',
 ];
 const hudlog = document.getElementById("hudlog");
 function playBootLog() {
@@ -1323,7 +1495,7 @@ function playBootLog() {
 playBootLog();
 
 /* ===== Typewriter ===== */
-const phrases = ["see your screen 👁️", "remember literally everything 🧠", "control your computer ⚡", "scan your whole codebase 📁", "monitor your hardware 📊", "run agents while you chill 🤖"];
+const phrases = ["see your screen 👁️", "scan your whole codebase 📁", "monitor your hardware 📊", "understand what you're coding 🖥️", "chat with context 💬", "soon: remember everything 🧠", "soon: control your computer ⚡"];
 const typedEl = document.getElementById("typed");
 let pi = 0, ci = 0, del = false;
 (function type() {
@@ -1523,7 +1695,7 @@ async function joinWaitlist() {
       })
     });
     const data = await response.json();
-    if (!response.ok || !data.success) throw new Error(data.message || "submit failed");
+    if (!response.ok || String(data.success) !== "true") throw new Error(data.message || "submit failed");
     showWaitlistSuccess(inp, btn, suc, err);
   } catch (e) {
     btn.disabled = false;
