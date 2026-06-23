@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>NEXUS AI — Personal AI Operating System</title>
+<meta name="description" content="NEXUS AI is a JARVIS-style personal AI operating system: voice, memory, vision, screen intelligence, computer control, agents and automation. Local-first and secure." />
+<style>
+  :root {
+    --bg: #04060f; --cyan: #00e5ff; --violet: #8b5cf6; --pink: #ff4ecd;
+    --lime: #a3e635; --text: #eef2ff; --muted: #8b97b8;
+    --card: rgba(255,255,255,0.04); --border: rgba(120,160,255,0.14);
+    --mono: "JetBrains Mono", "Fira Code", monospace;
+    --orange: #ff7e47; --gold: #ffd23f;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: "Inter", system-ui, sans-serif; line-height: 1.6; overflow-x: hidden; }
+  a { color: inherit; text-decoration: none; }
+  img, canvas { max-width: 100%; }
+  ::selection { background: var(--lime); color: #04060f; }
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 2; }
+
+  /* ===== Boot preloader ===== */
+  #boot {
+    position: fixed; inset: 0; z-index: 10000; background: var(--bg);
+    display: grid; place-items: center; font-family: var(--mono);
+    transition: opacity .6s, visibility .6s;
+  }
+  #boot.done { opacity: 0; visibility: hidden; }
+  .boot-inner { text-align: center; width: min(340px, 80vw); }
+  .boot-logo { font-size: 1.4rem; font-weight: 900; letter-spacing: .25em; margin-bottom: 22px; }
+  .boot-logo span { color: var(--cyan); animation: blink 1s steps(2) infinite; }
+  .boot-bar { height: 3px; background: rgba(255,255,255,.07); border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+  .boot-bar i { display: block; height: 100%; width: 0; border-radius: 4px;
+    background: linear-gradient(90deg, var(--cyan), var(--pink)); box-shadow: 0 0 14px var(--cyan);
+    transition: width .3s ease; }
+  .boot-txt { font-size: .68rem; color: var(--muted); letter-spacing: .12em; min-height: 18px; }
+
+  /* ===== Scroll progress ===== */
+  #progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 9000;
+    background: linear-gradient(90deg, var(--cyan), var(--pink), var(--lime)); box-shadow: 0 0 10px rgba(0,229,255,.5); }
+
+  /* ===== Neural network background ===== */
+  #neural { position: fixed; inset: 0; z-index: 0; }
+  .scanline {
+    position: fixed; left: 0; right: 0; height: 120px; z-index: 1; pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgba(0,229,255,0.04), transparent);
+    animation: scan 9s linear infinite;
+  }
+  @keyframes scan { from { top: -15%; } to { top: 115%; } }
+
+  /* ===== Magnetic liquid cursor (desktop only) ===== */
+  @media (hover: hover) and (pointer: fine) {
+    body { cursor: none; }
+    a, button, .btn, .card, .pill, .model, .faq-q { cursor: none; }
+  }
+  /* Main dot — snaps instantly to pointer */
+  .cur-dot {
+    position: fixed; top: 0; left: 0; width: 7px; height: 7px; border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 1.5px rgba(0,229,255,0.8), 0 0 10px var(--cyan), 0 0 22px rgba(0,229,255,0.4);
+    pointer-events: none; z-index: 9999; transform: translate(-50%, -50%);
+    transition: width .12s, height .12s, background .2s, box-shadow .2s;
+  }
+  /* Aura blob — lags behind with spring easing */
+  .cur-ring {
+    position: fixed; top: 0; left: 0; width: 36px; height: 36px; border-radius: 50%;
+    pointer-events: none; z-index: 9998; transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(0,229,255,0.18) 0%, rgba(139,92,246,0.10) 55%, transparent 75%);
+    border: 1px solid rgba(0,229,255,0.28);
+    backdrop-filter: blur(1px);
+    transition: width .32s cubic-bezier(.22,1,.36,1), height .32s cubic-bezier(.22,1,.36,1),
+                background .3s, border-color .3s;
+    will-change: transform;
+  }
+  /* Trail streaks */
+  .cur-trail {
+    position: fixed; top: 0; left: 0; border-radius: 50%;
+    pointer-events: none; z-index: 9996; transform: translate(-50%, -50%);
+    background: rgba(0,229,255,0.09);
+    transition: width .5s ease, height .5s ease;
+    will-change: transform;
+  }
+  /* Hover state */
+  body.cur-hover .cur-dot {
+    width: 5px; height: 5px;
+    background: var(--lime);
+    box-shadow: 0 0 0 2px rgba(163,230,53,0.6), 0 0 14px var(--lime), 0 0 28px rgba(163,230,53,0.3);
+  }
+  body.cur-hover .cur-ring {
+    width: 54px; height: 54px;
+    background: radial-gradient(circle, rgba(163,230,53,0.14) 0%, rgba(0,229,255,0.08) 55%, transparent 75%);
+    border-color: rgba(163,230,53,0.45);
+  }
+  /* Click ripple */
+  .cur-pulse {
+    position: fixed; border-radius: 50%;
+    border: 1px solid rgba(0,229,255,0.7);
+    pointer-events: none; z-index: 9997; transform: translate(-50%, -50%);
+    animation: curPulse .55s cubic-bezier(.2,.6,.4,1) forwards;
+  }
+  @keyframes curPulse {
+    from { width: 8px; height: 8px; opacity: 0.9; border-width: 1.5px; }
+    to   { width: 64px; height: 64px; opacity: 0; border-width: 0.5px; }
+  }
+  @media (hover: none), (pointer: coarse) { .cur-dot, .cur-ring, .cur-trail { display: none; } }
+
+  /* ===== Nav ===== */
+  nav {
+    position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 100;
+    width: min(1120px, calc(100% - 28px)); padding: 10px 22px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    background: rgba(6,10,24,0.85); border: 1px solid var(--border);
+  }
+  .logo { font-weight: 900; letter-spacing: 0.12em; font-family: var(--mono); }
+  .logo .dot { color: var(--cyan); animation: blink 1.4s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0.2; } }
+  .nav-links { display: flex; gap: 22px; font-size: 0.85rem; color: var(--muted); }
+  .nav-links a { transition: color .2s; position: relative; }
+  .nav-links a::after {
+    content: ""; position: absolute; bottom: -2px; left: 0; width: 0; height: 1px;
+    background: var(--cyan); transition: width .22s cubic-bezier(.22,1,.36,1); border-radius: 2px;
+  }
+  .nav-links a:hover { color: var(--cyan); }
+  .nav-links a:hover::after { width: 100%; }
+  .status-chip {
+    display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 0.72rem;
+    color: var(--lime); border: 1px solid rgba(163,230,53,0.3); padding: 6px 12px; border-radius: 999px;
+  }
+  .status-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--lime); animation: blink 1.6s infinite; }
+  .menu-btn {
+    display: none; background: none; border: 1px solid var(--border); border-radius: 10px;
+    color: var(--cyan); font-family: var(--mono); font-size: 1rem; padding: 7px 13px;
+  }
+
+  .btn { display: inline-block; padding: 13px 30px; border-radius: 12px; font-weight: 700; transition: transform .22s cubic-bezier(.22,1,.36,1), box-shadow .22s; border: 1px solid transparent; min-height: 44px; }
+  .btn-primary {
+    background: linear-gradient(90deg, var(--cyan), var(--violet), var(--pink), var(--cyan));
+    background-size: 300%; color: #04060f; animation: shimmer 4s linear infinite;
+  }
+  .btn-primary:hover { transform: translateY(-4px) scale(1.04); box-shadow: 0 18px 56px rgba(0,229,255,0.5), 0 6px 20px rgba(0,0,0,0.35); }
+  .btn-ghost { border-color: var(--border); }
+  .btn-ghost:hover { border-color: rgba(0,229,255,0.6); transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+
+  /* ===== Hero ===== */
+  header { position: relative; min-height: 100svh; display: grid; place-items: center; padding: 130px 24px 70px; z-index: 2; }
+  .hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items: center; max-width: 1180px; width: 100%; }
+  .badge {
+    display: inline-flex; gap: 8px; padding: 7px 16px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--card); font-family: var(--mono); font-size: 0.72rem; color: var(--cyan);
+    text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 24px;
+  }
+  h1 { font-size: clamp(2.1rem, 5.5vw, 4.2rem); font-weight: 900; line-height: 1.06; letter-spacing: -0.02em; margin-bottom: 20px; }
+  h1 .gradient {
+    background: linear-gradient(90deg, var(--cyan), var(--pink), var(--violet), var(--cyan));
+    background-size: 300%; -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shimmer 5s linear infinite;
+  }
+  @keyframes shimmer { to { background-position: 300% center; } }
+  .strike { position: relative; color: var(--muted); }
+  .strike::after {
+    content: ""; position: absolute; left: -2%; top: 52%; width: 104%; height: 5px;
+    background: var(--pink); transform: rotate(-2deg); border-radius: 4px;
+    animation: strikeIn .9s .8s cubic-bezier(.8,0,.2,1) both;
+  }
+  @keyframes strikeIn { from { width: 0; } to { width: 104%; } }
+  .subtitle { color: var(--muted); font-size: clamp(0.95rem, 2vw, 1.1rem); max-width: 520px; margin-bottom: 34px; }
+  .typed { color: var(--lime); font-family: var(--mono); font-weight: 700; border-right: 2px solid var(--lime); padding-right: 3px; }
+  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+
+  /* ===== AI HUD panel ===== */
+  .hud-wrap { position: relative; display: grid; place-items: center; min-height: 380px; perspective: 1000px; width: 100%; }
+  .hud {
+    width: min(420px, 100%); border: 1px solid rgba(0,229,255,0.3); border-radius: 16px;
+    background: rgba(6,10,24,0.75); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    font-family: var(--mono); position: relative; overflow: hidden;
+    box-shadow: 0 0 60px rgba(0,229,255,0.12), inset 0 0 40px rgba(0,229,255,0.04);
+    transition: transform .2s ease-out; transform-style: preserve-3d;
+  }
+  .hud::before, .hud::after, .hud .br::before, .hud .br::after {
+    content: ""; position: absolute; width: 18px; height: 18px; border: 2px solid var(--cyan); z-index: 5;
+  }
+  .hud::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; border-radius: 6px 0 0 0; }
+  .hud::after { top: -1px; right: -1px; border-left: 0; border-bottom: 0; border-radius: 0 6px 0 0; }
+  .hud .br::before { bottom: -1px; left: -1px; border-right: 0; border-top: 0; border-radius: 0 0 0 6px; }
+  .hud .br::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; border-radius: 0 0 6px 0; }
+  .hud-scan { position: absolute; left: 0; right: 0; height: 50px; pointer-events: none; z-index: 4;
+    background: linear-gradient(180deg, transparent, rgba(0,229,255,0.08), transparent);
+    animation: hudScan 4s linear infinite; }
+  @keyframes hudScan { from { top: -20%; } to { top: 110%; } }
+  .hud-head { display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.68rem; color: var(--cyan); letter-spacing: 0.12em; }
+  .hud-head .live { color: var(--lime); display: flex; align-items: center; gap: 6px; }
+  .hud-head .live i { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); animation: blink 1.4s infinite; }
+  .hud-body { padding: 16px; }
+  .meter { margin-bottom: 12px; }
+  .meter .ml { display: flex; justify-content: space-between; font-size: 0.66rem; color: var(--muted); margin-bottom: 5px; }
+  .meter .mv { color: var(--cyan); }
+  .meter .bar { height: 5px; border-radius: 4px; background: rgba(255,255,255,0.06); overflow: hidden; }
+  .meter .fill { height: 100%; border-radius: 4px; width: 40%;
+    background: linear-gradient(90deg, var(--cyan), var(--violet)); transition: width 0.9s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 0 10px rgba(0,229,255,0.5); }
+  .meter.m-lime .fill { background: linear-gradient(90deg, var(--lime), var(--cyan)); }
+  .meter.m-pink .fill { background: linear-gradient(90deg, var(--pink), var(--violet)); }
+  .hud-log { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 12px;
+    font-size: 0.66rem; color: #8fa3cf; min-height: 92px; }
+  .hud-log .ln { opacity: 0; animation: pop .3s forwards; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hud-log .ok { color: var(--lime); }
+  .hud-log .tag { color: var(--pink); }
+  .chip { position: absolute; font-family: var(--mono); font-size: 0.62rem; padding: 6px 12px;
+    border-radius: 999px; border: 1px solid var(--border); background: rgba(6,10,24,0.9);
+    color: var(--muted); z-index: 6; animation: chipFloat 5s ease-in-out infinite;
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); white-space: nowrap; }
+  .chip b { color: var(--cyan); }
+  .chip-1 { top: 6%; left: -4%; animation-delay: 0s; }
+  .chip-2 { top: 22%; right: -6%; animation-delay: -1.6s; }
+  .chip-3 { bottom: 14%; left: -7%; animation-delay: -3.2s; }
+  .chip-4 { bottom: 2%; right: -2%; animation-delay: -2.4s; }
+  @keyframes chipFloat { 50% { transform: translateY(-12px); } }
+  .wave { display: flex; gap: 4px; align-items: flex-end; height: 26px; margin-top: 12px; justify-content: center; }
+  .wave b { width: 4px; border-radius: 4px; background: linear-gradient(180deg, var(--cyan), var(--violet)); animation: bounce 1s ease-in-out infinite; }
+  .wave b:nth-child(2) { animation-delay: .12s; } .wave b:nth-child(3) { animation-delay: .24s; }
+  .wave b:nth-child(4) { animation-delay: .36s; } .wave b:nth-child(5) { animation-delay: .48s; }
+  .wave b:nth-child(6) { animation-delay: .6s; }  .wave b:nth-child(7) { animation-delay: .72s; }
+  @keyframes bounce { 0%,100% { height: 6px; } 50% { height: 24px; } }
+
+  /* ===== Chat demo — upgraded ===== */
+  .chat-demo {
+    max-width: 720px; margin: 0 auto; border-radius: 22px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(0,229,255,0.18), 0 32px 100px rgba(0,0,0,0.65), 0 0 60px rgba(0,229,255,0.06);
+    background: rgba(7,11,26,0.92); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+    position: relative;
+  }
+  .chat-demo::before {
+    content: ""; position: absolute; inset: 0; border-radius: 22px; pointer-events: none;
+    background: linear-gradient(135deg, rgba(0,229,255,0.04) 0%, transparent 50%, rgba(139,92,246,0.04) 100%);
+  }
+  /* titlebar */
+  .chat-head {
+    display: flex; align-items: center; gap: 8px; padding: 14px 20px;
+    background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(0,229,255,0.1);
+    font-family: var(--mono); font-size: 0.73rem; color: var(--muted);
+  }
+  .chat-head .tl { display: flex; gap: 7px; flex-shrink: 0; }
+  .chat-head .tl s {
+    width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+    text-decoration: none; transition: filter .2s;
+  }
+  .chat-head .tl s:hover { filter: brightness(1.3); }
+  .chat-head .tl s:nth-child(1){background:#ff5f57; box-shadow:0 0 6px rgba(255,95,87,0.5);}
+  .chat-head .tl s:nth-child(2){background:#febc2e; box-shadow:0 0 6px rgba(254,188,46,0.5);}
+  .chat-head .tl s:nth-child(3){background:#28c840; box-shadow:0 0 6px rgba(40,200,64,0.5);}
+  .chat-head .session-label {
+    flex: 1; text-align: center; letter-spacing: 0.08em;
+    background: linear-gradient(90deg, var(--cyan), var(--violet));
+    -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 700;
+  }
+  .chat-head .live-badge {
+    display: flex; align-items: center; gap: 5px; color: var(--lime); font-size: 0.66rem;
+    border: 1px solid rgba(163,230,53,0.3); padding: 3px 9px; border-radius: 999px;
+  }
+  .chat-head .live-badge i { width: 5px; height: 5px; border-radius: 50%; background: var(--lime); animation: blink 1.2s infinite; }
+
+  /* body */
+  .chat-body { padding: 24px 20px; display: flex; flex-direction: column; gap: 18px; min-height: 280px; }
+
+  /* message rows */
+  .msg-row { display: flex; gap: 11px; align-items: flex-end; opacity: 0; transform: translateY(14px); animation: pop .5s cubic-bezier(.2,.9,.3,1.2) forwards; }
+  .msg-row.user { flex-direction: row-reverse; }
+  .msg-avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: grid; place-items: center; font-size: 0.85rem; border: 1.5px solid var(--border);
+  }
+  .msg-row.ai .msg-avatar { background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(139,92,246,0.2)); color: var(--cyan); }
+  .msg-row.user .msg-avatar { background: linear-gradient(135deg, rgba(255,78,205,0.2), rgba(139,92,246,0.2)); color: var(--pink); }
+  .msg-wrap { display: flex; flex-direction: column; gap: 4px; max-width: 80%; }
+  .msg-row.user .msg-wrap { align-items: flex-end; }
+  .msg-sender { font-family: var(--mono); font-size: 0.64rem; color: var(--muted); padding: 0 4px; letter-spacing: .08em; }
+  .msg-row.ai .msg-sender { color: var(--cyan); }
+  .msg {
+    padding: 12px 17px; border-radius: 18px; font-size: 0.9rem; line-height: 1.55;
+  }
+  .msg-row.user .msg {
+    background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(139,92,246,0.18));
+    border: 1px solid rgba(0,229,255,0.28); border-bottom-right-radius: 5px;
+    color: var(--text);
+  }
+  .msg-row.ai .msg {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(120,160,255,0.16);
+    border-bottom-left-radius: 5px; color: var(--text);
+  }
+  .msg .tag { color: var(--cyan); font-family: var(--mono); font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 3px; letter-spacing: .06em; }
+  .msg .hi { color: var(--lime); font-weight: 700; }
+  .msg-time { font-size: 0.6rem; color: rgba(139,151,184,0.5); padding: 0 4px; font-family: var(--mono); }
+
+  /* typing indicator */
+  .typing-row { display: flex; gap: 11px; align-items: flex-end; opacity: 0; transition: opacity .3s; }
+  .typing-row.show { opacity: 1; }
+  .typing-bubble { background: rgba(255,255,255,0.05); border: 1px solid rgba(120,160,255,0.16); border-radius: 18px; border-bottom-left-radius: 5px; padding: 14px 18px; display: flex; gap: 5px; align-items: center; }
+  .typing-bubble span { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); opacity: .5; animation: typingDot 1.2s ease-in-out infinite; }
+  .typing-bubble span:nth-child(2) { animation-delay: .2s; }
+  .typing-bubble span:nth-child(3) { animation-delay: .4s; }
+  @keyframes typingDot { 0%,60%,100% { transform: translateY(0); opacity:.4; } 30% { transform: translateY(-6px); opacity:1; } }
+
+  /* chat input bar */
+  .chat-input-bar {
+    display: flex; gap: 10px; align-items: center; padding: 14px 18px;
+    border-top: 1px solid rgba(0,229,255,0.1); background: rgba(255,255,255,0.02);
+  }
+  .chat-input-fake {
+    flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(120,160,255,0.18);
+    border-radius: 12px; padding: 10px 14px; font-size: 0.85rem; color: var(--muted);
+    font-family: inherit; display: flex; align-items: center; gap: 8px;
+  }
+  .chat-input-fake .cursor-line { width: 2px; height: 16px; background: var(--cyan); animation: blink 1s steps(2) infinite; border-radius: 2px; }
+  .chat-send-btn {
+    width: 38px; height: 38px; border-radius: 10px; border: 1px solid rgba(0,229,255,0.3);
+    background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(139,92,246,0.2));
+    display: grid; place-items: center; color: var(--cyan); font-size: 1rem; flex-shrink: 0;
+    transition: all .2s;
+  }
+
+  /* mini floating window cards */
+  .float-window {
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(0,229,255,0.15), 0 20px 60px rgba(0,0,0,0.55);
+    background: rgba(7,11,26,0.9); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  }
+  .float-titlebar {
+    display: flex; align-items: center; gap: 7px; padding: 11px 16px;
+    background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(0,229,255,0.1);
+    font-family: var(--mono); font-size: 0.68rem; color: var(--muted);
+  }
+  .float-titlebar .tl { display: flex; gap: 6px; }
+  .float-titlebar .tl s { width: 10px; height: 10px; border-radius: 50%; display: inline-block; text-decoration: none; }
+  .float-titlebar .tl s:nth-child(1){background:#ff5f57}.float-titlebar .tl s:nth-child(2){background:#febc2e}.float-titlebar .tl s:nth-child(3){background:#28c840}
+  .float-titlebar .title { flex: 1; }
+
+  /* demo showcase grid */
+  .demo-showcase { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 24px; margin-top: 52px; align-items: start; }
+  @media (max-width: 880px) { .demo-showcase { grid-template-columns: 1fr; } }
+
+  @keyframes pop { to { opacity: 1; transform: none; } }
+
+  /* ===== Sections ===== */
+  section { padding: 100px 0; position: relative; z-index: 2; }
+  .label { color: var(--pink); font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px; }
+  h2 { font-size: clamp(1.6rem, 4vw, 2.7rem); font-weight: 900; letter-spacing: -0.02em; margin-bottom: 14px; }
+  .desc { color: var(--muted); max-width: 620px; margin-bottom: 52px; }
+
+  .divider { height: 1px; max-width: 1180px; margin: 0 auto; position: relative; z-index: 2;
+    background: linear-gradient(90deg, transparent, rgba(0,229,255,.35), transparent); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr)); gap: 22px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 30px 26px;
+    position: relative; overflow: hidden;
+    transition: transform .22s cubic-bezier(.22,1,.36,1), border-color .3s, box-shadow .3s;
+    will-change: transform;
+  }
+  .card::before {
+    content: ""; position: absolute; inset: 0; border-radius: 18px; opacity: 0;
+    transition: opacity .35s; pointer-events: none;
+    background: radial-gradient(420px circle at var(--mx,50%) var(--my,50%), rgba(0,229,255,0.11), transparent 48%);
+  }
+  .card:hover::before { opacity: 1; }
+  .card:hover {
+    border-color: rgba(0,229,255,0.42);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 30px rgba(0,229,255,0.07);
+  }
+  .card .num { position: absolute; top: 18px; right: 22px; font-family: var(--mono); font-size: 0.7rem; color: rgba(139,151,184,0.5); }
+  .card .icon { font-size: 1.8rem; display: inline-block; margin-bottom: 14px; transition: transform .3s; }
+  .card:hover .icon { transform: scale(1.25) rotate(-8deg); }
+  .card h3 { font-size: 1.08rem; font-weight: 800; margin-bottom: 8px; }
+  .card p { color: var(--muted); font-size: 0.9rem; }
+  .card ul { margin-top: 10px; list-style: none; }
+  .card li { color: var(--muted); font-size: 0.84rem; padding-left: 18px; position: relative; margin-bottom: 4px; }
+  .card li::before { content: "▸"; position: absolute; left: 0; color: var(--cyan); }
+
+  /* ===== About ===== */
+  .about-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .about-card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 28px 24px; }
+  .about-card h3 { font-size: 1rem; font-weight: 800; margin-bottom: 8px; color: var(--cyan); }
+  .about-card p { color: var(--muted); font-size: 0.9rem; }
+  .about-lede { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--text); max-width: 820px; margin-bottom: 44px; }
+  .about-lede b { color: var(--lime); }
+
+  /* ===== Steps ===== */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; counter-reset: step; }
+  .step { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 28px 22px; position: relative; }
+  .step::before {
+    counter-increment: step; content: "0" counter(step);
+    font-family: var(--mono); font-size: 2rem; font-weight: 700; display: block; margin-bottom: 12px;
+    background: linear-gradient(90deg, var(--cyan), var(--pink)); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .step h3 { font-size: 0.98rem; font-weight: 800; margin-bottom: 6px; }
+  .step p { color: var(--muted); font-size: 0.86rem; }
+  .step .arrow { position: absolute; right: -16px; top: 50%; transform: translateY(-50%); color: var(--cyan); font-size: 1.2rem; z-index: 3; }
+  .step:last-child .arrow { display: none; }
+
+  /* ===== Quote blocks ===== */
+  .quote-block { padding: 110px 24px; text-align: center; position: relative; z-index: 2; }
+  .quote-block blockquote {
+    font-weight: 900; font-size: clamp(1.35rem, 4vw, 2.9rem); line-height: 1.25;
+    max-width: 900px; margin: 0 auto; letter-spacing: -0.02em;
+  }
+  .quote-block .hl { color: var(--lime); }
+  .quote-block .hl2 { color: var(--pink); }
+  .quote-block .hl3 { color: var(--cyan); }
+  .quote-block .qmark { font-size: 4rem; color: var(--violet); opacity: .5; display: block; line-height: .6; margin-bottom: 16px; font-family: var(--mono); }
+  .quote-block cite {
+    display: block; margin-top: 22px; font-family: var(--mono); font-style: normal;
+    font-size: .72rem; color: var(--muted); letter-spacing: .2em; text-transform: uppercase;
+  }
+
+  /* ===== Terminal ===== */
+  .terminal {
+    border: 1px solid var(--border); border-radius: 16px; background: #060a18; overflow: hidden;
+    font-family: var(--mono); font-size: 0.82rem; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    max-width: 100%;
+  }
+  .term-body { padding: 20px 22px; min-height: 230px; color: #b8c4e8; overflow-x: auto; }
+  .term-body .ln { opacity: 0; animation: pop .3s forwards; white-space: pre-wrap; }
+  .term-body .p { color: var(--lime); }
+  .term-body .c { color: var(--cyan); }
+  .term-body .k { color: var(--pink); }
+  .cursor-block { display: inline-block; width: 8px; height: 14px; background: var(--lime); animation: blink 1s steps(2) infinite; vertical-align: middle; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+
+  /* ===== Models / Stats ===== */
+  .models { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 26px; }
+  .model {
+    font-family: var(--mono); font-size: 0.8rem; padding: 10px 20px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--card); transition: all .22s cubic-bezier(.22,1,.36,1);
+  }
+  .model:hover { border-color: var(--lime); color: var(--lime); transform: translateY(-5px) scale(1.06); box-shadow: 0 8px 24px rgba(163,230,53,0.2); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; text-align: center; }
+  .stat { padding: 30px 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--card); }
+  .stat .v { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 900; font-family: var(--mono); background: linear-gradient(90deg, var(--cyan), var(--pink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .stat .l { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
+
+  /* ===== FAQ ===== */
+  .faq { max-width: 760px; margin: 0 auto; }
+  .faq-item { border: 1px solid var(--border); border-radius: 14px; background: var(--card); margin-bottom: 12px; overflow: hidden; transition: border-color .3s; }
+  .faq-item.open { border-color: rgba(0,229,255,0.4); }
+  .faq-q {
+    width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 14px;
+    padding: 18px 22px; background: none; border: 0; color: var(--text); font: inherit;
+    font-weight: 700; font-size: 0.96rem; text-align: left; min-height: 48px;
+  }
+  .faq-q .tg { font-family: var(--mono); color: var(--cyan); transition: transform .3s; font-size: 1.1rem; flex-shrink: 0; }
+  .faq-item.open .tg { transform: rotate(45deg); color: var(--lime); }
+  .faq-a { max-height: 0; overflow: hidden; transition: max-height .4s ease; }
+  .faq-a p { padding: 0 22px 18px; color: var(--muted); font-size: 0.9rem; }
+
+  /* ===== Marquee, pills, CTA ===== */
+  .marquee { overflow: hidden; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 16px 0; position: relative; z-index: 2; background: rgba(255,255,255,0.015); }
+  .marquee-track { display: flex; gap: 44px; width: max-content; animation: scroll 24s linear infinite; }
+  .marquee span { font-family: var(--mono); font-weight: 700; font-size: 0.92rem; white-space: nowrap; color: var(--muted); }
+  .marquee em { font-style: normal; color: var(--cyan); }
+  @keyframes scroll { to { transform: translateX(-50%); } }
+
+  .pills { display: flex; flex-wrap: wrap; gap: 11px; justify-content: center; margin-top: 40px; }
+  .pill { padding: 9px 19px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); font-size: 0.83rem; font-weight: 600; transition: all .22s cubic-bezier(.22,1,.36,1); }
+  .pill:hover { background: var(--cyan); color: #04060f; border-color: var(--cyan); transform: scale(1.09) rotate(-1.5deg); box-shadow: 0 6px 20px rgba(0,229,255,0.35); }
+
+  .cta { text-align: center; border: 1px solid var(--border); border-radius: 26px; padding: 84px 30px;
+    background: radial-gradient(ellipse at top, rgba(0,229,255,0.1), transparent 60%), rgba(255,255,255,0.02); }
+  .cta p { color: var(--muted); max-width: 520px; margin: 0 auto 34px; }
+
+  /* ===== Back to top ===== */
+  #totop {
+    position: fixed; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); right: calc(26px + env(safe-area-inset-right, 0px));
+    z-index: 8000; width: 46px; height: 46px;
+    display: grid; place-items: center; border: 1px solid var(--border); border-radius: 12px;
+    background: rgba(6,10,24,.85); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    color: var(--cyan); font-family: var(--mono); opacity: 0; transform: translateY(16px); transition: all .3s;
+  }
+  #totop.show { opacity: 1; transform: none; }
+  #totop:hover { border-color: var(--lime); color: var(--lime); transform: translateY(-3px); }
+
+  footer { border-top: 1px solid var(--border); padding: 34px 0 calc(34px + env(safe-area-inset-bottom, 0px)); text-align: center; color: var(--muted); font-size: 0.83rem; font-family: var(--mono); position: relative; z-index: 2; letter-spacing: .08em; }
+  footer .f-links { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; font-size: .78rem; }
+  footer .f-links a:hover { color: var(--cyan); }
+
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity .75s cubic-bezier(.22,1,.36,1), transform .75s cubic-bezier(.22,1,.36,1); }
+  .reveal.visible { opacity: 1; transform: none; }
+
+  /* ============================================================
+     RESPONSIVE BREAKPOINTS
+     ============================================================ */
+
+  /* --- Tablet / iPad (≤1024px) --- */
+  @media (max-width: 1024px) {
+    .hero { gap: 36px; grid-template-columns: 1fr 1fr; }
+    .steps { grid-template-columns: repeat(2, 1fr); }
+    .step .arrow { display: none; }
+    .about-grid { grid-template-columns: repeat(2, 1fr); }
+    .split { gap: 32px; }
+    section { padding: 84px 0; }
+  }
+
+  /* --- Large phones / small tablets (≤880px) --- */
+  @media (max-width: 880px) {
+    .hero, .split { grid-template-columns: 1fr; }
+    .hud-wrap { min-height: auto; order: -1; margin-top: 10px; }
+    .chip-1, .chip-3 { left: 0; } .chip-2, .chip-4 { right: 0; }
+    .status-chip { display: none; }
+    .menu-btn { display: block; }
+    .nav-links {
+      display: none; width: 100%; flex-direction: column; gap: 0;
+      padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--border);
+    }
+    nav.menu-open .nav-links { display: flex; }
+    .nav-links a { padding: 12px 4px; font-size: 0.95rem; min-height: 44px; display: flex; align-items: center; }
+    header { padding: 110px 18px 56px; }
+    .hero > div:last-child { order: -1; }
+    section { padding: 64px 0; }
+    .quote-block { padding: 76px 20px; }
+    .about-grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .container { padding: 0 18px; }
+  }
+
+  /* --- Small phones (≤560px) --- */
+  @media (max-width: 560px) {
+    header { padding: 100px 14px 48px; }
+    h1 { font-size: clamp(1.9rem, 8.5vw, 2.4rem); }
+    .subtitle { font-size: 0.92rem; }
+    .hero-actions { width: 100%; }
+    .hero-actions .btn { flex: 1 1 auto; text-align: center; padding: 13px 18px; font-size: 0.9rem; }
+    .badge { font-size: 0.62rem; padding: 6px 12px; }
+    .hud-wrap { padding: 0 6px; }
+    .chip { font-size: 0.56rem; padding: 5px 9px; }
+    .chip-1 { top: -4%; } .chip-2 { top: 10%; } .chip-3 { bottom: 22%; } .chip-4 { bottom: -3%; }
+    .chat-body { padding: 16px 12px; min-height: 220px; }
+    .msg { max-width: 94%; font-size: 0.84rem; padding: 10px 13px; }
+    .terminal { font-size: 0.68rem; }
+    .term-body { padding: 14px 14px; min-height: 200px; }
+    .card { padding: 24px 20px; }
+    .stats { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .stat { padding: 22px 10px; }
+    .cta { padding: 56px 20px; border-radius: 20px; }
+    .quote-block blockquote { font-size: clamp(1.2rem, 6vw, 1.5rem); }
+    .quote-block .qmark { font-size: 3rem; }
+    .faq-q { padding: 15px 16px; font-size: 0.88rem; }
+    .faq-a p { padding: 0 16px 15px; font-size: 0.85rem; }
+    .marquee span { font-size: 0.78rem; }
+    .marquee-track { gap: 30px; }
+    .pills { gap: 8px; }
+    .pill { padding: 7px 14px; font-size: 0.76rem; }
+    #totop { width: 42px; height: 42px; }
+    .container { padding: 0 14px; }
+    .desc { margin-bottom: 36px; font-size: 0.92rem; }
+  }
+
+  /* --- Phone landscape --- */
+  @media (max-height: 500px) and (orientation: landscape) {
+    header { min-height: auto; padding: 100px 24px 50px; }
+    .hud-wrap { min-height: auto; }
+  }
+
+  /* ===== Noise toggle ===== */
+  #noise-btn {
+    position: fixed; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); right: calc(26px + env(safe-area-inset-right, 0px));
+    z-index: 8000; width: 46px; height: 46px; border-radius: 12px;
+    display: grid; place-items: center; border: 1px solid var(--border);
+    background: rgba(6,10,24,.85); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    color: var(--muted); font-size: 1.1rem; transition: all .3s; cursor: none;
+  }
+  #noise-btn:hover { border-color: var(--violet); color: var(--violet); transform: translateY(-3px); }
+  #noise-btn.active { border-color: var(--lime); color: var(--lime); box-shadow: 0 0 16px rgba(163,230,53,0.3); }
+
+  /* ===== Social proof floating bar ===== */
+  .social-bar {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 10px 20px; border-radius: 999px; border: 1px solid var(--border);
+    background: rgba(6,10,24,0.7); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    width: fit-content; margin-bottom: 28px; font-size: 0.78rem; color: var(--muted);
+    font-family: var(--mono);
+  }
+  .social-bar .avatars { display: flex; }
+  .social-bar .avatars span {
+    width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--bg);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;
+    margin-left: -8px; background: linear-gradient(135deg, var(--violet), var(--cyan));
+  }
+  .social-bar .avatars span:first-child { margin-left: 0; }
+  .social-bar .count { color: var(--lime); font-weight: 700; }
+
+  /* ===== Vibe check section ===== */
+  .vibe-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+    gap: 16px; margin-top: 40px;
+  }
+  .vibe-card {
+    border: 1px solid var(--border); border-radius: 20px; padding: 26px 22px;
+    background: var(--card); cursor: pointer; transition: all .3s; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .vibe-card::before {
+    content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity .3s;
+    border-radius: 20px;
+  }
+  .vibe-card.v1::before { background: radial-gradient(ellipse at center, rgba(0,229,255,0.15), transparent 70%); }
+  .vibe-card.v2::before { background: radial-gradient(ellipse at center, rgba(255,78,205,0.15), transparent 70%); }
+  .vibe-card.v3::before { background: radial-gradient(ellipse at center, rgba(163,230,53,0.15), transparent 70%); }
+  .vibe-card.v4::before { background: radial-gradient(ellipse at center, rgba(139,92,246,0.15), transparent 70%); }
+  .vibe-card:hover::before, .vibe-card.selected::before { opacity: 1; }
+  .vibe-card:hover, .vibe-card.selected { transform: translateY(-6px) scale(1.03); }
+  .vibe-card.v1:hover, .vibe-card.v1.selected { border-color: rgba(0,229,255,0.6); }
+  .vibe-card.v2:hover, .vibe-card.v2.selected { border-color: rgba(255,78,205,0.6); }
+  .vibe-card.v3:hover, .vibe-card.v3.selected { border-color: rgba(163,230,53,0.6); }
+  .vibe-card.v4:hover, .vibe-card.v4.selected { border-color: rgba(139,92,246,0.6); }
+  .vibe-card .ve { font-size: 2.4rem; display: block; margin-bottom: 10px; }
+  .vibe-card h4 { font-size: 1rem; font-weight: 800; margin-bottom: 6px; }
+  .vibe-card p { font-size: 0.8rem; color: var(--muted); }
+  .vibe-result {
+    margin-top: 28px; padding: 22px 28px; border-radius: 16px; border: 1px solid var(--border);
+    background: var(--card); font-family: var(--mono); font-size: 0.85rem; opacity: 0;
+    transition: opacity .4s; min-height: 60px; display: flex; align-items: center; justify-content: center;
+    text-align: center; color: var(--cyan);
+  }
+  .vibe-result.show { opacity: 1; }
+
+  /* ===== Waitlist / CTA upgrade ===== */
+  .waitlist-form {
+    display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    margin-top: 28px; width: 100%; max-width: 500px; margin-left: auto; margin-right: auto;
+  }
+  .waitlist-input {
+    flex: 1 1 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+    border-radius: 12px; padding: 13px 18px; color: var(--text); font-family: inherit;
+    font-size: 0.9rem; outline: none; transition: border-color .3s; min-height: 44px;
+  }
+  .waitlist-input:focus { border-color: var(--cyan); }
+  .waitlist-input::placeholder { color: var(--muted); }
+  .waitlist-success {
+    display: none; color: var(--lime); font-family: var(--mono); font-size: 0.82rem;
+    margin-top: 14px; text-align: center; letter-spacing: .08em;
+  }
+
+  /* ===== Live user counter ticker ===== */
+  .live-ticker {
+    display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono);
+    font-size: 0.72rem; color: var(--muted); margin-top: 18px;
+  }
+  .live-ticker .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); animation: blink 1.2s infinite; }
+  .live-ticker b { color: var(--lime); }
+
+  /* ===== Feature highlight tag ===== */
+  .new-tag {
+    display: inline-block; font-family: var(--mono); font-size: 0.6rem; padding: 2px 7px;
+    background: var(--lime); color: #04060f; border-radius: 4px; font-weight: 900;
+    margin-left: 8px; vertical-align: middle; letter-spacing: .1em; text-transform: uppercase;
+  }
+
+  /* ===== Comparison table ===== */
+  .compare-wrap { overflow-x: auto; margin-top: 44px; border-radius: 18px; border: 1px solid var(--border); }
+  table.compare { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  table.compare th, table.compare td { padding: 16px 22px; border-bottom: 1px solid var(--border); text-align: left; }
+  table.compare thead th { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; background: rgba(255,255,255,0.025); }
+  table.compare tbody tr:last-child td { border-bottom: 0; }
+  table.compare tbody tr:hover td { background: rgba(255,255,255,0.025); }
+  table.compare .yes { color: var(--lime); font-weight: 700; }
+  table.compare .no { color: var(--muted); opacity: .5; }
+  table.compare .nexus-col { color: var(--cyan); font-weight: 800; }
+  table.compare tbody td:nth-child(2) { background: rgba(0,229,255,0.04); }
+
+  @media (max-width: 880px) { #noise-btn { display: none; } .compare-wrap { border-radius: 12px; } }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div id="boot">
+  <div class="boot-inner">
+    <div class="boot-logo">NEXUS<span>_AI</span></div>
+    <div class="boot-bar"><i id="bootfill"></i></div>
+    <div class="boot-txt" id="boottxt">initializing…</div>
+  </div>
+</div>
+<div id="progress"></div>
+
+<canvas id="neural"></canvas>
+<div class="scanline"></div>
+<div class="cur-ring"></div>
+<div class="cur-trail" style="width:18px;height:18px;opacity:0.5;"></div>
+<div class="cur-trail" style="width:12px;height:12px;opacity:0.3;transition-delay:.08s;"></div>
+<div class="cur-dot"></div>
+
+<nav id="nav">
+  <span class="logo">NEXUS<span class="dot">_AI</span></span>
+  <button class="menu-btn" id="menubtn" aria-label="Toggle menu">☰</button>
+  <span class="status-chip"><i></i> SYSTEMS ONLINE</span>
+  <div class="nav-links" id="navlinks">
+    <a href="#about">About</a><a href="#live">Demo</a><a href="#features">Features</a>
+    <a href="#deep">Deep Intel</a><a href="#compare">Compare</a><a href="#faq">FAQ</a>
+  </div>
+</nav>
+
+<header>
+  <div class="hero">
+    <div>
+      <span class="badge">⬡ personal ai operating system</span>
+      <h1><span class="strike">chatbot</span>? nah.<br/><span class="gradient">an AI operating<br/>system that runs with you.</span></h1>
+      <p class="subtitle">
+        NEXUS can <span class="typed" id="typed"></span><br/>
+        voice-first 🎙️ memory-pilled 🧠 screen-aware 👁️ local-first 🔒 — it's giving JARVIS, fr.
+      </p>
+      <div class="social-bar reveal">
+        <div class="avatars">
+          <span>🦊</span><span>🐙</span><span>🐬</span><span>🦋</span><span>⚡</span>
+        </div>
+        <span><span class="count" id="user-count">2,847</span> people already on the waitlist</span>
+        <span style="color:var(--lime)">★★★★★</span>
+      </div>
+      <div class="hero-actions">
+        <a href="#live" class="btn btn-primary">Boot NEXUS ⚡</a>
+        <a href="#about" class="btn btn-ghost">What is NEXUS? ↓</a>
+      </div>
+    </div>
+    <div class="hud-wrap">
+      <span class="chip chip-1">🧠 <b>memory</b> indexed</span>
+      <span class="chip chip-2">👁️ <b>vision</b> online</span>
+      <span class="chip chip-3">🎙️ <b>voice</b> streaming</span>
+      <span class="chip chip-4">🤖 <b>agent</b> ready</span>
+      <div class="hud">
+        <div class="br"></div>
+        <div class="hud-scan"></div>
+        <div class="hud-head">⬡ NEXUS_CORE // v1.0 <span class="live"><i></i>LIVE</span></div>
+        <div class="hud-body">
+          <div class="meter"><div class="ml"><span>NEURAL ENGINE</span><span class="mv" id="mv1">0%</span></div><div class="bar"><div class="fill" id="f1"></div></div></div>
+          <div class="meter m-lime"><div class="ml"><span>MEMORY INDEX</span><span class="mv" id="mv2">0%</span></div><div class="bar"><div class="fill" id="f2"></div></div></div>
+          <div class="meter m-pink"><div class="ml"><span>VISION PIPELINE</span><span class="mv" id="mv3">0%</span></div><div class="bar"><div class="fill" id="f3"></div></div></div>
+          <div class="hud-log" id="hudlog"></div>
+          <div class="wave"><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="marquee"><div class="marquee-track" id="mq">
+  <span>CONVERSATIONAL AI <em>⬡</em></span><span>VOICE ASSISTANT <em>⬡</em></span><span>LONG-TERM MEMORY <em>⬡</em></span>
+  <span>VISION INTEL <em>⬡</em></span><span>SCREEN INTEL <em>⬡</em></span><span>COMPUTER CONTROL <em>⬡</em></span>
+  <span>PLANNER AGENT <em>⬡</em></span><span>PROJECT INTEL <em>⬡</em></span><span>SYSTEM INTEL <em>⬡</em></span>
+  <span>DOC INTEL <em>⬡</em></span><span>MULTI-MODEL ROUTING <em>⬡</em></span><span>AUTOMATION <em>⬡</em></span><span>RESEARCH <em>⬡</em></span>
+  <span>NO CAP <em>⬡</em></span><span>MAXIMUM AURA <em>⬡</em></span><span>MAIN CHARACTER ENERGY <em>⬡</em></span><span>BUILT DIFFERENT <em>⬡</em></span>
+</div></div>
+
+<!-- ===== WHAT IS NEXUS ===== -->
+<section id="about">
+  <div class="container">
+    <p class="label reveal">// what is nexus?</p>
+    <h2 class="reveal">your always-on AI companion. 🛸</h2>
+    <p class="about-lede reveal">
+      NEXUS AI is a <b>production-grade, JARVIS-style personal AI operating system</b> that lives on your desktop.
+      It's not another chat window — it's an intelligent companion that communicates naturally, understands context,
+      remembers everything important, analyzes your screen and files, executes real actions, and automates entire
+      workflows. Always available. Always aware. Always yours.
+    </p>
+    <div class="about-grid">
+      <div class="about-card reveal"><h3>🗣️ it talks</h3><p>Natural, real-time voice conversations with a friendly, confident voice. Interrupt it mid-sentence — it handles it like a human would, online or offline.</p></div>
+      <div class="about-card reveal"><h3>🧠 it remembers</h3><p>Long-term semantic memory stores your preferences, past conversations, and decisions — so context carries across days, weeks, and projects.</p></div>
+      <div class="about-card reveal"><h3>👁️ it sees</h3><p>Understands your screen, screenshots, images, UI layouts, and documents using vision models and OCR. Ask "what am I looking at?" — it knows.</p></div>
+      <div class="about-card reveal"><h3>⚡ it acts</h3><p>Opens apps, controls your computer, automates repetitive tasks, and chains workflows — with safety checks on every execution.</p></div>
+      <div class="about-card reveal"><h3>🤖 it thinks ahead</h3><p>A planner-executor agent breaks complex goals into subtasks, executes them sequentially, tracks progress, and recovers from failures on its own.</p></div>
+      <div class="about-card reveal"><h3>🔒 it respects you</h3><p>Local-first whenever possible and security-focused by design. Your data, your machine, your control.</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== HOW IT WORKS ===== -->
+<section style="background: rgba(255,255,255,0.015);">
+  <div class="container">
+    <p class="label reveal">// how it works</p>
+    <h2 class="reveal">from "hey nexus" to done. in seconds. ⏱️</h2>
+    <p class="desc reveal">a simple loop under the hood: listen → understand → plan → execute.</p>
+    <div class="steps">
+      <div class="step reveal"><span class="arrow">→</span><h3>you speak (or type)</h3><p>Talk naturally. NEXUS streams your voice through its hybrid STT pipeline in real time — no wake-word friction.</p></div>
+      <div class="step reveal"><span class="arrow">→</span><h3>it understands context</h3><p>Pulls your memory, screen content, system state, and project context together to know exactly what you mean.</p></div>
+      <div class="step reveal"><span class="arrow">→</span><h3>it routes & plans</h3><p>Picks the best AI model for the task and the planner agent breaks the goal into executable steps.</p></div>
+      <div class="step reveal"><h3>it executes & reports</h3><p>Runs the workflow, tracks progress, recovers from failures, and answers back in a natural voice.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== LIVE CHAT DEMO ===== -->
+<section id="live">
+  <div class="container">
+    <p class="label reveal">// live preview</p>
+    <h2 class="reveal">talk to it like a real one. 💬</h2>
+    <p class="desc reveal">context-aware, multi-turn, interruptible — and it actually remembers you.</p>
+
+    <!-- Main chat window -->
+    <div class="chat-demo reveal">
+      <!-- titlebar -->
+      <div class="chat-head">
+        <div class="tl"><s></s><s></s><s></s></div>
+        <span class="session-label">nexus://session — voice + chat</span>
+        <span class="live-badge"><i></i>LIVE</span>
+      </div>
+      <!-- messages -->
+      <div class="chat-body" id="chat"></div>
+      <!-- typing indicator -->
+      <div style="padding: 0 20px 4px;">
+        <div class="typing-row" id="typing-indicator">
+          <div class="msg-avatar" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(139,92,246,0.2));display:grid;place-items:center;font-size:.85rem;border:1.5px solid var(--border);flex-shrink:0;">⬡</div>
+          <div class="typing-bubble"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+      <!-- fake input bar -->
+      <div class="chat-input-bar">
+        <div class="chat-input-fake">
+          <span style="color:var(--muted);opacity:.6;" id="fake-input-text">ask nexus anything…</span>
+          <span class="cursor-line"></span>
+        </div>
+        <div class="chat-send-btn">↑</div>
+        <div style="color:var(--muted);font-size:1.1rem;">🎙️</div>
+      </div>
+    </div>
+
+    <!-- Demo showcase: side-by-side mini windows -->
+    <div class="demo-showcase">
+      <!-- Mini memory window -->
+      <div class="float-window reveal">
+        <div class="float-titlebar">
+          <div class="tl"><s></s><s></s><s></s></div>
+          <span class="title">🧠 nexus://memory — long-term recall</span>
+        </div>
+        <div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;">
+          <div style="background:rgba(163,230,53,0.06);border:1px solid rgba(163,230,53,0.2);border-radius:12px;padding:12px 16px;font-size:0.82rem;">
+            <div style="font-family:var(--mono);font-size:0.62rem;color:var(--lime);margin-bottom:5px;letter-spacing:.08em;">📌 PINNED DECISION · 3 days ago</div>
+            chose REST over GraphQL for v1, webhooks for real-time events. revisit GraphQL at 10k users.
+          </div>
+          <div style="background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.15);border-radius:12px;padding:12px 16px;font-size:0.82rem;">
+            <div style="font-family:var(--mono);font-size:0.62rem;color:var(--cyan);margin-bottom:5px;letter-spacing:.08em;">💬 LAST SESSION · yesterday</div>
+            you were debugging the auth middleware — unresolved: JWT expiry edge case.
+          </div>
+          <div style="background:rgba(255,78,205,0.04);border:1px solid rgba(255,78,205,0.15);border-radius:12px;padding:12px 16px;font-size:0.82rem;">
+            <div style="font-family:var(--mono);font-size:0.62rem;color:var(--pink);margin-bottom:5px;letter-spacing:.08em;">⚡ PREFERENCE</div>
+            prefers concise responses. no fluff. dark mode everything. deploys on Fridays (risky bestie 😅).
+          </div>
+        </div>
+      </div>
+
+      <!-- Mini system monitor window -->
+      <div class="float-window reveal" style="display:flex;flex-direction:column;gap:0;">
+        <div class="float-titlebar">
+          <div class="tl"><s></s><s></s><s></s></div>
+          <span class="title">📊 nexus://system — live telemetry</span>
+        </div>
+        <div style="padding:18px 18px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.68rem;color:var(--muted);margin-bottom:6px;"><span>CPU USAGE</span><span style="color:var(--lime)" id="sys-cpu">72%</span></div>
+            <div style="height:5px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;"><div id="sys-cpu-bar" style="height:100%;width:72%;background:linear-gradient(90deg,var(--lime),var(--cyan));border-radius:4px;box-shadow:0 0 8px rgba(163,230,53,0.5);transition:width .9s ease;"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.68rem;color:var(--muted);margin-bottom:6px;"><span>RAM — Chrome hogging 6.2GB 💀</span><span style="color:var(--pink)" id="sys-ram">84%</span></div>
+            <div style="height:5px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;"><div id="sys-ram-bar" style="height:100%;width:84%;background:linear-gradient(90deg,var(--pink),var(--violet));border-radius:4px;box-shadow:0 0 8px rgba(255,78,205,0.5);transition:width .9s ease;"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.68rem;color:var(--muted);margin-bottom:6px;"><span>DISK I/O</span><span style="color:var(--cyan)" id="sys-disk">41%</span></div>
+            <div style="height:5px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;"><div id="sys-disk-bar" style="height:100%;width:41%;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:4px;transition:width .9s ease;"></div></div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:12px;font-family:var(--mono);font-size:0.7rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;justify-content:space-between;"><span>active apps</span><span style="color:var(--text)">VS Code · Chrome · Slack · Fig</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>network</span><span style="color:var(--lime)">↑ 2.1MB/s · ↓ 8.4MB/s</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>uptime</span><span style="color:var(--text)">6h 14m</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUOTE 1 -->
+<div class="quote-block">
+  <span class="qmark reveal">"</span>
+  <blockquote class="reveal">chatbots <span class="hl2">answer</span>. NEXUS <span class="hl">acts</span>.</blockquote>
+  <cite class="reveal">— the difference between talking and doing</cite>
+</div>
+
+<!-- ===== CORE FEATURES ===== -->
+<section id="features" style="background: rgba(255,255,255,0.015);">
+  <div class="container">
+    <p class="label reveal">// core stack — 13 subsystems</p>
+    <h2 class="reveal">every capability. zero compromises. ⚡</h2>
+    <p class="desc reveal">the full feature matrix — conversation to computer control.</p>
+    <div class="grid">
+      <div class="card reveal"><span class="num">01</span><span class="icon">💬</span><h3>Conversational AI</h3>
+        <ul><li>context-aware, multi-turn memory</li><li>natural language understanding</li><li>intelligent follow-up reasoning</li><li>personalized interactions</li></ul></div>
+      <div class="card reveal"><span class="num">02</span><span class="icon">🎙️</span><h3>Voice Assistant</h3>
+        <ul><li>real-time STT + TTS conversations</li><li>interruptible streaming responses</li><li>hybrid online/offline pipeline</li><li>natural female voice + stable reconnection</li></ul></div>
+      <div class="card reveal"><span class="num">03</span><span class="icon">🧠</span><h3>Long-Term Memory</h3>
+        <ul><li>stores key conversations + prefs</li><li>semantic retrieval</li><li>context persistence</li><li>memory-aware responses</li></ul></div>
+      <div class="card reveal"><span class="num">04</span><span class="icon">👁️</span><h3>Vision Intelligence</h3>
+        <ul><li>image + screenshot analysis</li><li>UI layout reading</li><li>visual reasoning + object understanding</li><li>OCR built in</li></ul></div>
+      <div class="card reveal"><span class="num">05</span><span class="icon">🖥️</span><h3>Screen Intelligence</h3>
+        <ul><li>desktop analysis + app understanding</li><li>explains on-screen content</li><li>reads interface elements</li><li>detects actionable info</li></ul></div>
+      <div class="card reveal"><span class="num">06</span><span class="icon">⚡</span><h3>Computer Control <span class="new-tag">hot</span></h3>
+        <ul><li>opens apps + executes actions</li><li>automates repetitive tasks</li><li>system-aware execution with safety</li></ul></div>
+      <div class="card reveal"><span class="num">07</span><span class="icon">🤖</span><h3>Planner & Executor Agent</h3>
+        <ul><li>breaks goals into subtasks</li><li>sequential workflow execution</li><li>progress tracking</li><li>failure recovery</li></ul></div>
+      <div class="card reveal"><span class="num">12</span><span class="icon">🔁</span><h3>Automation</h3>
+        <ul><li>workflow execution + task chaining</li><li>action triggers</li><li>intelligent orchestration</li></ul></div>
+      <div class="card reveal"><span class="num">13</span><span class="icon">🔬</span><h3>Research Assistant <span class="new-tag">new</span></h3>
+        <ul><li>info gathering + source comparison</li><li>finding summaries</li><li>technical investigations</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PROJECT INTEL TERMINAL ===== -->
+<section id="deep">
+  <div class="container split">
+    <div>
+      <p class="label reveal">// feature 08 — project intelligence</p>
+      <h2 class="reveal">it reads your codebase like a bestie. 📁</h2>
+      <p class="desc reveal" style="margin-bottom:20px;">folder trees, dependency + import graphs, entry-point detection, tech stack ID, architecture summaries, README generation, code smell + risk analysis, project Q&A, comparison mode — even <b style="color:var(--cyan)">"NEXUS, analyze yourself."</b> 🪞</p>
+      <p class="desc reveal" style="font-family:var(--mono); font-size:0.78rem; margin-bottom:0;">auto-ignores: .git · node_modules · .next · build · dist · __pycache__ · venv · .venv</p>
+    </div>
+    <div class="float-window reveal" style="box-shadow: 0 0 0 1px rgba(163,230,53,0.15), 0 24px 70px rgba(0,0,0,0.55);">
+      <div class="float-titlebar" style="background:rgba(163,230,53,0.04);border-bottom-color:rgba(163,230,53,0.15);">
+        <div class="tl"><s></s><s></s><s></s></div>
+        <span class="title" style="color:var(--lime);letter-spacing:.06em;">📁 nexus — project scan · my-app/</span>
+        <span style="margin-left:auto;font-size:.6rem;color:rgba(163,230,53,0.6);letter-spacing:.1em;">● SCANNING</span>
+      </div>
+      <div class="terminal" style="border:0;border-radius:0;box-shadow:none;">
+        <div class="term-body" id="term"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUOTE 2 -->
+<div class="quote-block">
+  <span class="qmark reveal">"</span>
+  <blockquote class="reveal">it doesn't just <span class="hl2">remember</span> what you said.<br/>it remembers <span class="hl">who you are</span>.</blockquote>
+  <cite class="reveal">— memory-aware. context-pilled. personal.</cite>
+</div>
+
+<!-- ===== SYSTEM + DOC INTEL ===== -->
+<section style="background: rgba(255,255,255,0.015);">
+  <div class="container">
+    <p class="label reveal">// features 09–10</p>
+    <h2 class="reveal">knows your machine's whole vibe. 📊</h2>
+    <p class="desc reveal">live hardware telemetry + document intelligence, always on.</p>
+    <div class="stats" style="margin-bottom:24px;">
+      <div class="stat reveal"><div class="v" data-count="100" data-suffix="%">0</div><div class="l">CPU / RAM / Disk monitored</div></div>
+      <div class="stat reveal"><div class="v" data-count="24" data-suffix="/7">0</div><div class="l">health reports & diagnostics</div></div>
+      <div class="stat reveal"><div class="v" data-count="13" data-suffix="">0</div><div class="l">intelligence subsystems</div></div>
+      <div class="stat reveal"><div class="v" data-count="0" data-suffix="ms friction">0</div><div class="l">UX goal. period.</div></div>
+    </div>
+    <div class="grid">
+      <div class="card reveal"><span class="num">09</span><span class="icon">🩺</span><h3>System Intelligence</h3>
+        <ul><li>CPU/RAM/disk + hardware diagnostics</li><li>running app detection + storage analysis</li><li>performance insights + hardware recs</li></ul></div>
+      <div class="card reveal"><span class="num">10</span><span class="icon">📄</span><h3>Document Intelligence</h3>
+        <ul><li>reads + summarizes documents</li><li>extracts info, answers questions</li><li>organizes knowledge</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== MULTI-MODEL ROUTING ===== -->
+<section>
+  <div class="container" style="text-align:center;">
+    <p class="label reveal">// feature 11 — multi-model routing</p>
+    <h2 class="reveal">one brain. many minds. 🔀</h2>
+    <p class="desc reveal" style="margin:0 auto 0;">auto-picks the best model per task with graceful fallback. no single point of failure.</p>
+    <div class="models reveal" style="justify-content:center;">
+      <span class="model">◈ Gemini</span><span class="model">◈ Claude</span>
+      <span class="model">◈ OpenAI</span><span class="model">◈ OpenRouter</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== PRIVACY & SECURITY ===== -->
+<section style="background: rgba(255,255,255,0.015);">
+  <div class="container">
+    <p class="label reveal">// privacy & trust</p>
+    <h2 class="reveal">your data stays yours. 🔒</h2>
+    <p class="desc reveal">an AI that watches your screen has to earn your trust. so we built it that way.</p>
+    <div class="grid">
+      <div class="card reveal"><span class="icon">🏠</span><h3>Local-First</h3><p>Memory, project scans, and system telemetry run on your machine whenever possible. The cloud is a choice, not a requirement.</p></div>
+      <div class="card reveal"><span class="icon">🛡️</span><h3>Safe Execution</h3><p>Every desktop action goes through system-aware safety checks. NEXUS asks before doing anything destructive.</p></div>
+      <div class="card reveal"><span class="icon">🧯</span><h3>Fault Tolerant</h3><p>Stable reconnection and recovery logic everywhere — drops a connection, picks up the conversation, never loses your context.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ARCHITECTURE ===== -->
+<section id="stack">
+  <div class="container" style="text-align:center;">
+    <p class="label reveal">// built different</p>
+    <h2 class="reveal">production-grade. no cap. 🏗️</h2>
+    <p class="desc reveal" style="margin:0 auto;">modular services · agent orchestration · memory + vision + voice pipelines · LLM routing · execution engine · telemetry · observability. every subsystem independently maintainable. refactor over patch. no fragile workarounds. ever.</p>
+    <div class="pills reveal">
+      <span class="pill">Production-Ready Only</span><span class="pill">Clean Architecture</span><span class="pill">Modular</span>
+      <span class="pill">Scalable</span><span class="pill">Low Latency</span><span class="pill">Fault Tolerant</span>
+      <span class="pill">Local-First</span><span class="pill">Security-Focused</span><span class="pill">Streaming UI</span>
+      <span class="pill">Graceful Recovery</span><span class="pill">No Hacks Ever</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== VIBE CHECK ===== -->
+<section style="background: rgba(255,255,255,0.015);">
+  <div class="container" style="text-align:center;">
+    <p class="label reveal">// personalization</p>
+    <h2 class="reveal">what's your NEXUS vibe? ✨</h2>
+    <p class="desc reveal" style="margin: 0 auto 0;">pick how you'd use it. we'll personalize your onboarding.</p>
+    <div class="vibe-grid reveal">
+      <div class="vibe-card v1" onclick="selectVibe(this, 'dev')">
+        <span class="ve">💻</span>
+        <h4>dev mode</h4>
+        <p>codebase analysis, debugging help, project Q&A, architecture reviews</p>
+      </div>
+      <div class="vibe-card v2" onclick="selectVibe(this, 'exec')">
+        <span class="ve">🧠</span>
+        <h4>second brain</h4>
+        <p>memory, research, knowledge management, meeting notes, decisions log</p>
+      </div>
+      <div class="vibe-card v3" onclick="selectVibe(this, 'auto')">
+        <span class="ve">⚡</span>
+        <h4>automation freak</h4>
+        <p>workflows, computer control, task chaining, zero repetitive work ever</p>
+      </div>
+      <div class="vibe-card v4" onclick="selectVibe(this, 'all')">
+        <span class="ve">🛸</span>
+        <h4>full JARVIS</h4>
+        <p>all of the above, all the time, max aura configuration</p>
+      </div>
+    </div>
+    <div class="vibe-result" id="vibe-result">tap a card to see what NEXUS unlocks for you ↑</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== COMPARISON TABLE ===== -->
+<section id="compare">
+  <div class="container">
+    <p class="label reveal">// nexus vs the rest</p>
+    <h2 class="reveal">no cap, nothing else does this. 🏆</h2>
+    <p class="desc reveal">the receipts. all in one place.</p>
+    <div class="compare-wrap reveal">
+      <table class="compare">
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th class="nexus-col">⬡ NEXUS AI</th>
+            <th>ChatGPT</th>
+            <th>Copilot</th>
+            <th>Siri / Alexa</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Sees your screen live</td><td class="nexus-col yes">✓ always-on</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Long-term memory across sessions</td><td class="nexus-col yes">✓ semantic</td><td class="no">✗ limited</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Controls your computer</td><td class="nexus-col yes">✓ with safety</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Scans your codebase</td><td class="nexus-col yes">✓ full project</td><td class="no">✗</td><td class="yes">✓ partial</td><td class="no">✗</td></tr>
+          <tr><td>Autonomous agent / planner</td><td class="nexus-col yes">✓ plan + execute</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Multi-model routing</td><td class="nexus-col yes">✓ auto-pick</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Offline voice</td><td class="nexus-col yes">✓ hybrid</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+          <tr><td>Local-first / private</td><td class="nexus-col yes">✓ yours</td><td class="no">✗ cloud</td><td class="no">✗ cloud</td><td class="no">✗ cloud</td></tr>
+          <tr><td>Hardware telemetry</td><td class="nexus-col yes">✓ live</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== FAQ ===== -->
+<section id="faq" style="background: rgba(255,255,255,0.015);">
+  <div class="container">
+    <p class="label reveal">// faq</p>
+    <h2 class="reveal" style="text-align:center;">everything you're wondering. answered. 💭</h2>
+    <p class="desc reveal" style="margin: 0 auto 44px; text-align:center;">know exactly what you're booting before you boot it.</p>
+    <div class="faq">
+      <div class="faq-item reveal"><button class="faq-q">is NEXUS just another chatbot? <span class="tg">+</span></button>
+        <div class="faq-a"><p>nope. chatbots only talk. NEXUS is a full AI operating system — it sees your screen, remembers your context long-term, controls your computer, scans your projects, monitors your hardware, and runs autonomous agents that actually complete tasks.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">does it work offline? <span class="tg">+</span></button>
+        <div class="faq-a"><p>the voice pipeline is hybrid — it works online and offline with automatic switching. memory, project intelligence, and system monitoring are local-first by design, so core capabilities don't depend on the cloud.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">can it really control my computer? is that safe? <span class="tg">+</span></button>
+        <div class="faq-a"><p>yes, and yes. NEXUS can open apps, execute desktop actions, and automate workflows — but every execution passes through system-aware safety checks, and it asks before doing anything risky or destructive. you're always in control.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">what does it remember about me? <span class="tg">+</span></button>
+        <div class="faq-a"><p>important conversations, your preferences, and decisions you've made — stored with semantic retrieval so it can recall them naturally later. memory lives locally whenever possible, and it makes every response context-aware.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">which AI models does it use? <span class="tg">+</span></button>
+        <div class="faq-a"><p>NEXUS routes intelligently across Gemini, Claude, OpenAI, and OpenRouter-backed models — automatically choosing the best one per task with graceful fallback if a provider is down. one brain, many minds.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">what can it do with my code projects? <span class="tg">+</span></button>
+        <div class="faq-a"><p>scan any local project for folder trees, dependency and import graphs, entry points, tech stack, architecture summaries, file stats, language distribution, code smells, and risks. it can generate READMEs, answer questions about your code, compare projects — and even analyze itself.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">can I interrupt it while it's speaking? <span class="tg">+</span></button>
+        <div class="faq-a"><p>absolutely. responses stream in real time and are fully interruptible — cut it off mid-sentence and it adapts naturally, just like talking to a person. if the connection drops, it reconnects and picks up where you left off.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- QUOTE 3 -->
+<div class="quote-block">
+  <span class="qmark reveal">"</span>
+  <blockquote class="reveal">the future isn't an app you <span class="hl3">download</span>.<br/>it's an intelligence you <span class="hl">boot</span>.</blockquote>
+  <cite class="reveal">— NEXUS AI · personal ai operating system</cite>
+</div>
+
+<!-- ===== CTA ===== -->
+<section id="get-started" style="padding-top: 20px;">
+  <div class="container">
+    <div class="cta reveal">
+      <h2>your JARVIS era starts now. 🛸</h2>
+      <p>fast. conversational. proactive. remembers context, recovers from fails, handles interruptions. minimum friction, maximum aura.</p>
+      <div class="waitlist-form">
+        <input type="email" class="waitlist-input" id="waitlist-email" placeholder="drop your email, bestie ✉️" />
+        <button class="btn btn-primary" id="waitlist-btn" onclick="joinWaitlist()">Join Waitlist ⚡</button>
+      </div>
+      <div class="waitlist-success" id="waitlist-success">⬡ you're in. we'll ping you when NEXUS is ready to boot. 🫡</div>
+      <div class="live-ticker">
+        <span class="dot"></span>
+        <span><b id="live-count">47</b> people joined in the last hour</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="f-links">
+    <a href="#about">about</a><a href="#features">features</a><a href="#compare">compare</a><a href="#faq">faq</a><a href="#get-started">launch</a>
+  </div>
+  NEXUS_AI ⬡ NOT A CHATBOT. AN OPERATING SYSTEM. · built different. no cap.<br/>
+  <span style="font-size:0.7rem; opacity:.5; margin-top:8px; display:block;">© 2025 NEXUS AI · local-first · privacy-native · zero fluff</span>
+</footer>
+
+<a href="#" id="totop">⬡↑</a>
+<button id="noise-btn" title="Toggle ambient sound">🔇</button>
+
+<script>
+/* ===== Boot sequence ===== */
+const bootMsgs = ["loading neural engine…", "indexing memory…", "calibrating vision…", "voice pipeline ready", "⬡ welcome back."];
+const bootEl = document.getElementById("boot"), bootFill = document.getElementById("bootfill"), bootTxt = document.getElementById("boottxt");
+bootMsgs.forEach((m, i) => setTimeout(() => {
+  bootTxt.textContent = m;
+  bootFill.style.width = ((i + 1) / bootMsgs.length * 100) + "%";
+}, 350 * i));
+setTimeout(() => bootEl.classList.add("done"), 350 * bootMsgs.length + 500);
+
+/* ===== Mobile menu ===== */
+const nav = document.getElementById("nav");
+document.getElementById("menubtn").addEventListener("click", () => nav.classList.toggle("menu-open"));
+document.querySelectorAll("#navlinks a").forEach((a) => a.addEventListener("click", () => nav.classList.remove("menu-open")));
+
+/* ===== Scroll progress + back to top ===== */
+const pbar = document.getElementById("progress");
+const totop = document.getElementById("totop");
+addEventListener("scroll", () => {
+  pbar.style.width = (scrollY / (document.body.scrollHeight - innerHeight) * 100) + "%";
+  totop.classList.toggle("show", scrollY > 700);
+}, { passive: true });
+
+/* ===== Neural network background (density adapts to screen) ===== */
+const cv = document.getElementById("neural"), ctx = cv.getContext("2d");
+let W, H, nodes = [], signals = [], mouse = { x: -9999, y: -9999 };
+const isMobile = matchMedia("(pointer: coarse)").matches;
+function resize() {
+  W = cv.width = innerWidth; H = cv.height = innerHeight;
+  const count = Math.min(isMobile ? 45 : 110, Math.floor(W * H / (isMobile ? 22000 : 16000)));
+  nodes = Array.from({ length: count }, () => ({
+    x: Math.random() * W, y: Math.random() * H,
+    vx: (Math.random() - .5) * .4, vy: (Math.random() - .5) * .4,
+    r: Math.random() * 1.8 + 1, pulse: Math.random() * Math.PI * 2,
+    hue: Math.random() < .5 ? "0,229,255" : (Math.random() < .5 ? "139,92,246" : "255,78,205"),
+  }));
+}
+resize(); addEventListener("resize", resize);
+addEventListener("pointermove", e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+function loop() {
+  ctx.clearRect(0, 0, W, H);
+  const LINK = 130;
+  for (const n of nodes) {
+    n.x += n.vx; n.y += n.vy; n.pulse += 0.04;
+    if (n.x < 0 || n.x > W) n.vx *= -1;
+    if (n.y < 0 || n.y > H) n.vy *= -1;
+    const dx = n.x - mouse.x, dy = n.y - mouse.y, d = Math.hypot(dx, dy);
+    if (d < 120 && d > 1) { n.x += (dx / d) * 1.2; n.y += (dy / d) * 1.2; }
+  }
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i], b = nodes[j];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (d < LINK) {
+        const alpha = (1 - d / LINK) * 0.35;
+        ctx.strokeStyle = `rgba(0,229,255,${alpha})`;
+        ctx.lineWidth = 0.6;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        if (Math.random() < 0.0006) signals.push({ a, b, t: 0 });
+      }
+    }
+  }
+  signals = signals.filter(s => s.t <= 1);
+  for (const s of signals) {
+    s.t += 0.03;
+    const x = s.a.x + (s.b.x - s.a.x) * s.t, y = s.a.y + (s.b.y - s.a.y) * s.t;
+    ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(163,230,53,0.9)"; ctx.shadowBlur = 10; ctx.shadowColor = "#a3e635";
+    ctx.fill(); ctx.shadowBlur = 0;
+  }
+  for (const n of nodes) {
+    const glow = 0.5 + 0.5 * Math.sin(n.pulse);
+    ctx.beginPath(); ctx.arc(n.x, n.y, n.r + glow, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${n.hue},${0.5 + glow * 0.4})`;
+    ctx.shadowBlur = 8; ctx.shadowColor = `rgba(${n.hue},0.8)`;
+    ctx.fill(); ctx.shadowBlur = 0;
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+
+/* ===== Magnetic liquid cursor (desktop only) ===== */
+const curDot  = document.querySelector(".cur-dot");
+const curRing = document.querySelector(".cur-ring");
+const curTrails = document.querySelectorAll(".cur-trail");
+if (curDot && matchMedia("(hover: hover) and (pointer: fine)").matches) {
+  let mx = innerWidth / 2, my = innerHeight / 2;
+  // ring lags further, trails lag even more
+  let rx = mx, ry = my;
+  const tPos = Array.from(curTrails).map(() => ({ x: mx, y: my }));
+  const tEase = [0.10, 0.065]; // more lag = more liquid
+
+  addEventListener("pointermove", (e) => {
+    mx = e.clientX; my = e.clientY;
+    curDot.style.left = mx + "px"; curDot.style.top = my + "px";
+  });
+
+  (function loop() {
+    // aura blob spring
+    rx += (mx - rx) * 0.13; ry += (my - ry) * 0.13;
+    curRing.style.left = rx + "px"; curRing.style.top = ry + "px";
+
+    // trail nodes — each follows the previous one
+    let prevX = mx, prevY = my;
+    tPos.forEach((t, i) => {
+      t.x += (prevX - t.x) * tEase[i];
+      t.y += (prevY - t.y) * tEase[i];
+      curTrails[i].style.left = t.x + "px";
+      curTrails[i].style.top  = t.y + "px";
+      prevX = t.x; prevY = t.y;
+    });
+    requestAnimationFrame(loop);
+  })();
+
+  // hover glow state
+  document.querySelectorAll("a, button, .btn, .card, .pill, .model, .faq-q").forEach((el) => {
+    el.addEventListener("pointerenter", () => document.body.classList.add("cur-hover"));
+    el.addEventListener("pointerleave", () => document.body.classList.remove("cur-hover"));
+  });
+
+  // click ripple
+  addEventListener("pointerdown", (e) => {
+    const p = document.createElement("div");
+    p.className = "cur-pulse";
+    p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px";
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 600);
+  });
+}
+
+/* ===== HUD parallax (desktop only) ===== */
+const hud = document.querySelector(".hud");
+if (hud && matchMedia("(hover: hover) and (pointer: fine)").matches) {
+  addEventListener("pointermove", (e) => {
+    const x = (e.clientX / innerWidth - .5), y = (e.clientY / innerHeight - .5);
+    hud.style.transform = `rotateY(${x * 10}deg) rotateX(${y * -10}deg)`;
+  });
+}
+
+/* ===== HUD: live telemetry + boot log ===== */
+function jitterMeter(fillId, valId, base) {
+  const fill = document.getElementById(fillId), val = document.getElementById(valId);
+  (function tick() {
+    const v = Math.min(99, Math.max(8, base + (Math.random() * 24 - 12) | 0));
+    fill.style.width = v + "%"; val.textContent = v + "%";
+    setTimeout(tick, 1400 + Math.random() * 900);
+  })();
+}
+jitterMeter("f1", "mv1", 72); jitterMeter("f2", "mv2", 58); jitterMeter("f3", "mv3", 84);
+
+const bootLines = [
+  '<span class="tag">[init]</span> loading LLM router… <span class="ok">ok</span>',
+  '<span class="tag">[mem]</span> 12,402 embeddings indexed <span class="ok">✓</span>',
+  '<span class="tag">[vision]</span> OCR + screen parser online <span class="ok">✓</span>',
+  '<span class="tag">[voice]</span> STT/TTS hybrid pipeline ready <span class="ok">✓</span>',
+  '<span class="tag">[agent]</span> planner-executor standing by <span class="ok">✓</span>',
+  '<span class="tag">[sys]</span> telemetry stream active… <span class="ok">⬡</span>',
+];
+const hudlog = document.getElementById("hudlog");
+function playBootLog() {
+  hudlog.innerHTML = ""; let d = 300;
+  bootLines.forEach((l) => {
+    setTimeout(() => {
+      const div = document.createElement("div");
+      div.className = "ln"; div.innerHTML = l; hudlog.appendChild(div);
+      while (hudlog.children.length > 5) hudlog.removeChild(hudlog.firstChild);
+    }, d);
+    d += 700;
+  });
+  setTimeout(playBootLog, d + 4000);
+}
+playBootLog();
+
+/* ===== Typewriter ===== */
+const phrases = ["see your screen 👁️", "remember literally everything 🧠", "control your computer ⚡", "scan your whole codebase 📁", "monitor your hardware 📊", "run agents while you chill 🤖"];
+const typedEl = document.getElementById("typed");
+let pi = 0, ci = 0, del = false;
+(function type() {
+  const p = phrases[pi]; typedEl.textContent = p.slice(0, ci);
+  if (!del && ci < p.length) { ci++; setTimeout(type, 52); }
+  else if (!del) { del = true; setTimeout(type, 1500); }
+  else if (ci > 0) { ci--; setTimeout(type, 26); }
+  else { del = false; pi = (pi + 1) % phrases.length; setTimeout(type, 300); }
+})();
+
+/* ===== Looping chat demo — upgraded ===== */
+const script = [
+  { who: "user", text: "yo nexus, what's hogging my RAM rn? 😤", time: "now" },
+  { who: "ai",   text: "scanning… Chrome is eating <b style='color:var(--lime)'>6.2GB</b> across <b style='color:var(--pink)'>43 tabs</b> 💀 want me to suspend the inactive ones?", time: "just now" },
+  { who: "user", text: "yes pls. also remind me what we decided about the API design last week", time: "just now" },
+  { who: "ai",   text: "done — freed <b style='color:var(--lime)'>4.1GB</b> ✅  and from memory: you chose <b style='color:var(--cyan)'>REST over GraphQL</b> for v1, with webhooks for real-time. want the full notes?", time: "just now" },
+];
+const chat = document.getElementById("chat");
+const typingEl = document.getElementById("typing-indicator");
+
+function now() {
+  const d = new Date(); return d.getHours() + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+function makeRow(m) {
+  const row = document.createElement("div");
+  row.className = "msg-row " + m.who;
+  const avatar = m.who === "ai" ? "⬡" : "✦";
+  const sender = m.who === "ai" ? "⬡ NEXUS" : "you";
+  row.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div class="msg-wrap">
+      <div class="msg-sender">${sender}</div>
+      <div class="msg">${m.text}</div>
+      <div class="msg-time">${now()}</div>
+    </div>`;
+  return row;
+}
+
+function playChat() {
+  chat.innerHTML = "";
+  let delay = 400;
+  script.forEach((m, i) => {
+    // show typing before AI messages
+    if (m.who === "ai") {
+      setTimeout(() => { if (typingEl) typingEl.classList.add("show"); }, delay);
+      delay += 900;
+      setTimeout(() => { if (typingEl) typingEl.classList.remove("show"); }, delay - 100);
+    }
+    setTimeout(() => {
+      const row = makeRow(m);
+      chat.appendChild(row);
+      chat.scrollTop = chat.scrollHeight;
+    }, delay);
+    delay += m.who === "ai" ? 2400 : 1600;
+  });
+  setTimeout(playChat, delay + 3500);
+}
+playChat();
+
+/* ===== System telemetry jitter (mini window) ===== */
+function jitterSys(barId, valId, base, unit, color) {
+  const bar = document.getElementById(barId), val = document.getElementById(valId);
+  if (!bar || !val) return;
+  (function tick() {
+    const v = Math.min(99, Math.max(10, base + (Math.random() * 28 - 14) | 0));
+    bar.style.width = v + "%"; val.textContent = v + (unit || "%");
+    setTimeout(tick, 1600 + Math.random() * 1200);
+  })();
+}
+jitterSys("sys-cpu-bar", "sys-cpu", 68, "%");
+jitterSys("sys-ram-bar", "sys-ram", 80, "%");
+jitterSys("sys-disk-bar", "sys-disk", 38, "%");
+
+/* ===== Terminal demo ===== */
+const termLines = [
+  '<span class="p">you@nexus</span> $ <span class="c">nexus analyze ./my-app</span>',
+  '<span class="k">⬡ scanning…</span> 1,284 files · ignoring node_modules, .git, dist',
+  '├─ stack: <span class="c">Next.js · TypeScript · FastAPI · Postgres</span>',
+  '├─ entry points: <span class="c">app/page.tsx · api/main.py</span>',
+  '├─ languages: TS 61% · Python 28% · CSS 11%',
+  '├─ <span class="k">⚠ 3 code smells</span> · 1 circular import · 2 dead modules',
+  '└─ architecture summary + README draft ready ✦',
+  '<span class="p">you@nexus</span> $ <span class="c">nexus, analyze yourself</span> 🪞',
+  '<span class="k">⬡ self-analysis mode engaged…</span> <span class="cursor-block"></span>',
+];
+const term = document.getElementById("term");
+let termStarted = false;
+function playTerm() {
+  term.innerHTML = ""; let d = 0;
+  termLines.forEach((l, i) => {
+    setTimeout(() => {
+      const div = document.createElement("div");
+      div.className = "ln"; div.innerHTML = l; term.appendChild(div);
+    }, d);
+    d += i === 0 || i === 7 ? 900 : 550;
+  });
+  setTimeout(playTerm, d + 5000);
+}
+
+/* ===== FAQ accordion ===== */
+document.querySelectorAll(".faq-q").forEach((q) => {
+  q.addEventListener("click", () => {
+    const item = q.parentElement, ans = item.querySelector(".faq-a");
+    const isOpen = item.classList.contains("open");
+    document.querySelectorAll(".faq-item.open").forEach((o) => {
+      o.classList.remove("open"); o.querySelector(".faq-a").style.maxHeight = 0;
+    });
+    if (!isOpen) {
+      item.classList.add("open");
+      ans.style.maxHeight = ans.scrollHeight + "px";
+    }
+  });
+});
+
+/* ===== Card spotlight + tilt (desktop only) ===== */
+if (matchMedia("(hover: hover) and (pointer: fine)").matches) {
+  document.querySelectorAll(".card").forEach((card) => {
+    card.addEventListener("pointermove", (e) => {
+      const r = card.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      card.style.setProperty("--mx", x + "px"); card.style.setProperty("--my", y + "px");
+      card.style.transform = `perspective(800px) rotateX(${((y / r.height) - .5) * -8}deg) rotateY(${((x / r.width) - .5) * 8}deg) translateY(-4px)`;
+    });
+    card.addEventListener("pointerleave", () => card.style.transform = "");
+  });
+}
+
+/* ===== Count-up stats ===== */
+function countUp(el) {
+  const target = +el.dataset.count, suffix = el.dataset.suffix || "";
+  let cur = 0; const step = Math.max(1, Math.ceil(target / 40));
+  (function tick() {
+    cur = Math.min(target, cur + step);
+    el.textContent = cur + suffix;
+    if (cur < target) requestAnimationFrame(tick);
+  })();
+}
+
+/* ===== Vibe check ===== */
+const vibeMessages = {
+  dev: "⬡ dev mode engaged. NEXUS will prioritize codebase scanning, architecture insights, and code Q&A. your terminal is about to go brr. 🖥️",
+  exec: "⬡ second brain unlocked. NEXUS will front-load memory indexing, meeting recall, and knowledge management. nothing slips through ever again. 🧠",
+  auto: "⬡ automation mode: maximum. NEXUS will spotlight computer control, workflow chaining, and task automation. zero repetition. ever. ⚡",
+  all: "⬡ full JARVIS config detected. deploying all 13 subsystems at maximum aura. you are the main character now. 🛸"
+};
+function selectVibe(el, type) {
+  document.querySelectorAll(".vibe-card").forEach(c => c.classList.remove("selected"));
+  el.classList.add("selected");
+  const r = document.getElementById("vibe-result");
+  r.textContent = vibeMessages[type];
+  r.classList.add("show");
+}
+
+/* ===== Waitlist ===== */
+function joinWaitlist() {
+  const inp = document.getElementById("waitlist-email");
+  const btn = document.getElementById("waitlist-btn");
+  const suc = document.getElementById("waitlist-success");
+  if (!inp.value || !inp.value.includes("@")) { inp.style.borderColor = "var(--pink)"; return; }
+  inp.style.borderColor = "var(--lime)";
+  btn.textContent = "✓ you're in!";
+  btn.style.background = "linear-gradient(90deg, var(--lime), var(--cyan))";
+  btn.disabled = true;
+  suc.style.display = "block";
+  // increment counter
+  const uc = document.getElementById("user-count");
+  if (uc) uc.textContent = (parseInt(uc.textContent.replace(",","")) + 1).toLocaleString();
+}
+
+/* ===== Live user count jitter ===== */
+const liveCountEl = document.getElementById("live-count");
+(function jitterLive() {
+  const v = Math.max(12, Math.floor(40 + Math.random() * 30));
+  if (liveCountEl) liveCountEl.textContent = v;
+  setTimeout(jitterLive, 4000 + Math.random() * 3000);
+})();
+
+/* ===== Noise toggle — sound disabled ===== */
+const noiseBtn = document.getElementById("noise-btn");
+if (noiseBtn) { noiseBtn.style.display = "none"; }
+
+document.getElementById("mq").innerHTML += document.getElementById("mq").innerHTML;
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach((e, i) => {
+    if (!e.isIntersecting) return;
+    setTimeout(() => e.target.classList.add("visible"), i * 90);
+    e.target.querySelectorAll("[data-count]").forEach(countUp);
+    if (e.target.id === "term" || e.target.querySelector("#term")) {
+      if (!termStarted) { termStarted = true; playTerm(); }
+    }
+  });
+}, { threshold: 0.12 });
+document.querySelectorAll(".reveal").forEach((el) => obs.observe(el));
+</script>
+
+</body>
+</html>
