@@ -639,10 +639,12 @@
   }
   .waitlist-input:focus { border-color: var(--cyan); }
   .waitlist-input::placeholder { color: var(--muted); }
-  .waitlist-success {
-    display: none; color: var(--lime); font-family: var(--mono); font-size: 0.82rem;
+  .waitlist-success, .waitlist-error {
+    display: none; font-family: var(--mono); font-size: 0.82rem;
     margin-top: 14px; text-align: center; letter-spacing: .08em;
   }
+  .waitlist-success { color: var(--lime); }
+  .waitlist-error { color: var(--pink); }
 
   /* ===== Live user counter ticker ===== */
   .live-ticker {
@@ -1122,10 +1124,11 @@
       <h2>your JARVIS era starts now. 🛸</h2>
       <p>fast. conversational. proactive. remembers context, recovers from fails, handles interruptions. minimum friction, maximum aura.</p>
       <div class="waitlist-form">
-        <input type="email" class="waitlist-input" id="waitlist-email" placeholder="drop your email, bestie ✉️" />
-        <button class="btn btn-primary" id="waitlist-btn" onclick="joinWaitlist()">Join Waitlist ⚡</button>
+        <input type="email" class="waitlist-input" id="waitlist-email" placeholder="drop your email, bestie ✉️" autocomplete="email" />
+        <button class="btn btn-primary" id="waitlist-btn" type="button" onclick="joinWaitlist()">Join Waitlist ⚡</button>
       </div>
       <div class="waitlist-success" id="waitlist-success">⬡ you're in. we'll ping you when NEXUS is ready to boot. 🫡</div>
+      <div class="waitlist-error" id="waitlist-error">couldn't submit right now — try again in a sec.</div>
       <div class="live-ticker">
         <span class="dot"></span>
         <span><b id="live-count">47</b> people joined in the last hour</span>
@@ -1475,20 +1478,64 @@ function selectVibe(el, type) {
 }
 
 /* ===== Waitlist ===== */
-function joinWaitlist() {
-  const inp = document.getElementById("waitlist-email");
-  const btn = document.getElementById("waitlist-btn");
-  const suc = document.getElementById("waitlist-success");
-  if (!inp.value || !inp.value.includes("@")) { inp.style.borderColor = "var(--pink)"; return; }
+const WAITLIST_NOTIFY_EMAIL = "ayushofficaluse@gmail.com";
+
+function showWaitlistSuccess(inp, btn, suc, err) {
   inp.style.borderColor = "var(--lime)";
   btn.textContent = "✓ you're in!";
   btn.style.background = "linear-gradient(90deg, var(--lime), var(--cyan))";
   btn.disabled = true;
+  err.style.display = "none";
   suc.style.display = "block";
-  // increment counter
   const uc = document.getElementById("user-count");
-  if (uc) uc.textContent = (parseInt(uc.textContent.replace(",","")) + 1).toLocaleString();
+  if (uc) uc.textContent = (parseInt(uc.textContent.replace(",", "")) + 1).toLocaleString();
 }
+
+async function joinWaitlist() {
+  const inp = document.getElementById("waitlist-email");
+  const btn = document.getElementById("waitlist-btn");
+  const suc = document.getElementById("waitlist-success");
+  const err = document.getElementById("waitlist-error");
+  const email = inp.value.trim();
+
+  suc.style.display = "none";
+  err.style.display = "none";
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    inp.style.borderColor = "var(--pink)";
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "joining…";
+
+  try {
+    const response = await fetch("https://formsubmit.co/ajax/" + encodeURIComponent(WAITLIST_NOTIFY_EMAIL), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        email,
+        _subject: "New NEXUS AI waitlist signup",
+        _template: "table",
+        _captcha: "false",
+        message: "New waitlist signup from the NEXUS AI website."
+      })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.message || "submit failed");
+    showWaitlistSuccess(inp, btn, suc, err);
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+    inp.style.borderColor = "var(--pink)";
+    err.style.display = "block";
+  }
+}
+
+document.getElementById("waitlist-email").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") joinWaitlist();
+});
 
 /* ===== Live user count jitter ===== */
 const liveCountEl = document.getElementById("live-count");
