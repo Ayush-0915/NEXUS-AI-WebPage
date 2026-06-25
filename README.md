@@ -283,6 +283,7 @@ This project is licensed under the MIT License.
 # 👨‍💻 Author
 
 ### Ayush Singh
+### ayushofficaluse@gmail.com
 
 AI & Machine Learning Engineer
 
